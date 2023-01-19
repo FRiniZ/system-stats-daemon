@@ -1,5 +1,5 @@
-BIN := "./bin/calendar"
-DOCKER_IMG="calendar:develop"
+BIN := "./bin/daemon"
+DOCKER_IMG="daemon:develop"
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
