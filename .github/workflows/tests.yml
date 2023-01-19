@@ -10,9 +10,12 @@ on:
     branches: [ "main" ]
 
 jobs:
-#  build:
-#    runs-on: ubuntu-latest
-#    steps:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: github-action-build
+       uses: skx/github-action-build@release-0.6.1
+
 #    - uses: actions/checkout@v3
 #
 #    - name: Set up Go
@@ -51,8 +54,8 @@ jobs:
         go-version: 1.19
     
     - name: Unit tests
-      run: go test -v -count=1 -race -timeout=1m ./..
+      run: go test -v -count=100 -race ./..
     
-    - name: Optimization test
-      run: go test -v -count=1 -timeout=1m -tags bench ./...
+#    - name: Optimization test
+#      run: go test -v -count=100 -timeout=1m -tags bench ./...
 
