@@ -19,7 +19,7 @@ jobs:
 
       - name: Generate Changelog
         run: |
-          VERSION=$(hack/version.sh)
+          VERSION=$(scripts/version.sh)
           hack/changelog.sh $VERSION > build/$-CHANGELOG.md
 
       - name: Create GitHub Release
