@@ -20,14 +20,13 @@ jobs:
         run: |
           VERSION=$(scripts/version.sh)
           echo $VERSION
-          scripts/changelog.sh $VERSION > build/$-CHANGELOG.md
-          echo build/$-CHANGELOG.md
-          cat build/$-CHANGELOG.md
-
+          scripts/changelog.sh $VERSION > build/$VERSION-CHANGELOG.md
+          echo build/$VERSION-CHANGELOG.md
+          cat build/$VERSION-CHANGELOG.md
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          body_path: build/$-CHANGELOG.md
+          body_path: build/$VERSION-CHANGELOG.md
           files: build/ssd-app-*.tar.gz
 #        env:
 #          GITHUB_TOKEN: $
