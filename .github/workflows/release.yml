@@ -18,7 +18,7 @@ jobs:
 
       - name: Create env variables
         run: |
-          echo "VERSION=$(shell scripts/version.sh)" >> $GITHUB_ENV
+          echo "VERSION=$(scripts/version.sh)" >> $GITHUB_ENV
 
       - name: Test evn variables
         run: echo $VERSION
@@ -35,4 +35,4 @@ jobs:
 #          body_path: build/$VERSION-CHANGELOG.md
           files: build/ssd-app-*.tar.gz
         env:
-          GITHUB_TOKEN: $
+#          GITHUB_TOKEN: $
