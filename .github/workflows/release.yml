@@ -20,7 +20,7 @@ jobs:
       - name: Generate Changelog
         run: |
           VERSION=$(scripts/version.sh)
-          hack/changelog.sh $VERSION > build/$-CHANGELOG.md
+          scripts/changelog.sh $VERSION > build/$-CHANGELOG.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
