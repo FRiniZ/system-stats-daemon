@@ -32,7 +32,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-#          body_path: build/$VERSION-CHANGELOG.md
           files: build/ssd-app-*.tar.gz
-        env:
+#          body_path: build/$VERSION-CHANGELOG.md
+#        env:
 #          GITHUB_TOKEN: $
