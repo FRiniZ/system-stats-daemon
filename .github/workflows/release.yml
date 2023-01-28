@@ -16,17 +16,23 @@ jobs:
       - name: Build project
         run: make build-in-docker
 
-      - name: Generate Changelog
+      - name: Create env variables
         run: |
-          VERSION=$(scripts/version.sh)
-          echo $VERSION
-          scripts/changelog.sh $VERSION > build/$VERSION-CHANGELOG.md
-          echo build/$VERSION-CHANGELOG.md
-          cat build/$VERSION-CHANGELOG.md
+          echo "VERSION=$(shell scripts/version.sh)" >> $GITHUB_ENV
+
+      - name: Test evn variables
+        run: echo $VERSION
+
+#      - name: "✏️ Generate release changelog"
+#        uses: heinrichreimer/github-changelog-generator-action@v2.3
+#        with:
+#          token: $
+#          output:
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          body_path: build/$VERSION-CHANGELOG.md
+#          body_path: build/$VERSION-CHANGELOG.md
           files: build/ssd-app-*.tar.gz
-#        env:
-#          GITHUB_TOKEN: $
+        env:
+          GITHUB_TOKEN: $
