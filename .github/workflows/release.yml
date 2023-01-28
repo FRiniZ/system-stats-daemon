@@ -1,10 +1,10 @@
-name: Release
+name: release
 permissions:
   contents: write
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
 
 jobs:
   build:
