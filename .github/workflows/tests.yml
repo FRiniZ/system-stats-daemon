@@ -49,8 +49,4 @@ jobs:
     
     - name: Unit tests
       run: make test
-#      run: go test -v -count=100 -race ./..
-    
-#    - name: Optimization test
-#      run: go test -v -count=100 -timeout=1m -tags bench ./...
 
