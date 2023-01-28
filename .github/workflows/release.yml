@@ -14,18 +14,18 @@ jobs:
         uses: actions/checkout@master
 
       - name: Build project
-        run:
-          make build-linux
-  
+        run: |
+          make build-in-docker
+
       - name: Generate Changelog
-        run:
-          VERSION=$(scripts/version.sh)
-          scripts/changelog.sh $VERSION > build/$-CHANGELOG.md
+        run: |
+          VERSION=$(hack/version.sh)
+          hack/changelog.sh $VERSION > build/$-CHANGELOG.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           body_path: build/$-CHANGELOG.md
-          files: build/ssd-app-*.tar.gz
+          files: build/my-app-*.tar.gz
         env:
           GITHUB_TOKEN: $
