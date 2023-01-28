@@ -2,7 +2,10 @@ package app
 
 import "fmt"
 
-func Run() {
+type Application struct {
+}
+
+func (app *Application) Run() {
 
 	fmt.Println("Run app")
 
