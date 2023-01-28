@@ -12,6 +12,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@master
+
+      - name: Build project
+        run:
+          make build-linux
   
       - name: Generate Changelog
         run:
