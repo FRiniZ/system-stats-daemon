@@ -53,7 +53,7 @@ package-all: package-linux package-osx
 
 .PHONY: docker
 docker:
-	docker build --force-rm -t $(BINARY_NAME) . || true
+	docker build --force-rm -t $(BINARY_NAME) .
 
 .PHONY: build-in-docker
 build-in-docker: docker
