@@ -27,5 +27,5 @@ jobs:
         with:
           body_path: build/$-CHANGELOG.md
           files: build/ssd-app-*.tar.gz
-        env:
-          GITHUB_TOKEN: $
+#        env:
+#          GITHUB_TOKEN: $
