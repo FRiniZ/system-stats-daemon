@@ -26,6 +26,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           body_path: build/$-CHANGELOG.md
-          files: build/my-app-*.tar.gz
+          files: build/ssd-app-*.tar.gz
         env:
           GITHUB_TOKEN: $
