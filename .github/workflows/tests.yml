@@ -50,3 +50,7 @@ jobs:
     - name: Unit tests
       run: make test
 
+    - name: Go report card
+      uses: creekorful/goreportcard-action@v1.0
+
+
