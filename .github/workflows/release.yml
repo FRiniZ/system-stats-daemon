@@ -24,16 +24,16 @@ jobs:
       - name: Test evn variables
         run: echo $VERSION
 
-#      - name: "✏️ Generate release changelog"
-#        uses: heinrichreimer/github-changelog-generator-action@v2.3
-#        with:
-#          token: $
-#          output:
+      - name: "✏️ Generate release changelog"
+        uses: heinrichreimer/github-changelog-generator-action@v2.3
+        with:
+          token: ${{ github.token }}
+          output: build/$VERSION-CHANGELOG.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: build/ssd-app-*.tar.gz
-#          body_path: build/$VERSION-CHANGELOG.md
-#        env:
-#          GITHUB_TOKEN: $
+          body_path: build/$VERSION-CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
