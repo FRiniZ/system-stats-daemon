@@ -14,13 +14,14 @@ jobs:
         uses: actions/checkout@master
 
       - name: Build project
-        run: |
-          make build-in-docker
+        run: make build-in-docker
 
       - name: Generate Changelog
         run: |
           VERSION=$(scripts/version.sh)
+          echo $VERSION
           scripts/changelog.sh $VERSION > build/$-CHANGELOG.md
+          echo build/$-CHANGELOG.md
           cat build/$-CHANGELOG.md
 
       - name: Create GitHub Release
