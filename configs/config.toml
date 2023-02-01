@@ -1,4 +1,6 @@
 [logger]
 level = "INFO"
 
-# TODO
+[core]
+N = "5s"
+M = "15s"

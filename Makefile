@@ -66,3 +66,9 @@ build-in-docker: docker
 clean:
 	@echo "Cleaning..."
 	@rm -Rf $(BUILD_DIR)
+
+
+.PHONY: build
+build:
+	@echo "Building native binary..."
+	$(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_NAME)-native-amd64 ./cmd/ssd/
