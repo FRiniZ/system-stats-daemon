@@ -3,16 +3,13 @@
 package loadavg
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os/exec"
-	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors"
 )
@@ -23,60 +20,41 @@ type Sensor struct {
 	L3 float32
 }
 
-func (s *Sensor) Run(ctx context.Context, out chan<- sensors.Interface, wg *sync.WaitGroup) {
-	ticker := time.NewTicker(1 * time.Second)
+func (s *Sensor) Run(ctx context.Context, out chan<- sensors.Interface) {
+	cmd := exec.CommandContext(ctx, "/bin/bash", "-c", "while true; do cat /proc/loadavg; sleep 1; done")
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
+	cmdReader, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	scanner := bufio.NewScanner(cmdReader)
+
+	wg := &sync.WaitGroup{}
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				out <- s.Read()
-			}
+		//state := FSM_CPU_HEADER
+		for scanner.Scan() {
+			text := scanner.Text()
+			fmt.Println("LA:", text)
 		}
+		fmt.Println("Closed Run3")
 	}()
+
+	if err := cmd.Start(); err != nil {
+		log.Fatal(err)
+	}
+
+	wg.Wait()
+
+	if err := cmd.Wait(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (s *Sensor) Read() sensors.Interface {
-	var err error
-	var f1, f2, f3 float32
-
-	c1 := exec.Command("top", "-b", "-n1")
-	c2 := exec.Command("grep", "load average")
-
-	c1.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	c2.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-	var outb, errb bytes.Buffer
-	r, w := io.Pipe()
-
-	c1.Stdout = w
-	c1.Stderr = &errb
-
-	c2.Stdin = r
-	c2.Stdout = &outb
-	c2.Stderr = &errb
-
-	err = c1.Start()
-	if err != nil {
-		log.Printf("Stderr:%v", errb.String())
-		log.Fatal(err)
-	}
-	err = c2.Start()
-	if err != nil {
-		log.Printf("Stderr:%v", errb.String())
-		log.Fatal(err)
-	}
-	c1.Wait()
-	w.Close()
-	c2.Wait()
-
-	idx := strings.Index(outb.String(), "load average")
-	fmt.Sscanf(outb.String()[idx:], "load average:%f,%f,%f", &f1, &f2, &f3)
-
-	return &Sensor{L1: f1, L2: f2, L3: f3}
+	return &Sensor{s.L1, s.L2, s.L3}
 }
