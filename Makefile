@@ -1,4 +1,5 @@
-BINARY_NAME=ssd-app
+BINARY_SSD=ssdaemon-app
+BINARY_SSC=ssclient-app
 BUILD_DIR=build
 
 APP_VERSION=$(shell scripts/version.sh)
@@ -28,12 +29,14 @@ pre-build:
 .PHONY: build-linux
 build-linux: pre-build
 	@echo "Building Linux binary..."
-	GOOS=linux GOARCH=amd64 $(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./cmd/ssd/
+	GOOS=linux GOARCH=amd64 $(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_SSD)-linux-amd64 ./cmd/ssdaemon
+	GOOS=linux GOARCH=amd64 $(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_SSC)-linux-amd64 ./cmd/ssclient
 
 .PHONY: build-osx
 build-osx: pre-build
 	@echo "Building OSX binary..."
-	GOOS=darwin GOARCH=amd64 $(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./cmd/ssd
+	GOOS=darwin GOARCH=amd64 $(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_SSD)-darwin-amd64 ./cmd/ssdaemon
+	GOOS=darwin GOARCH=amd64 $(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_SSC)-darwin-amd64 ./cmd/ssclient
 
 .PHONY: build build-all
 build-all: build-linux build-osx
@@ -41,26 +44,28 @@ build-all: build-linux build-osx
 .PHONY: package-linux
 package-linux:
 	@echo "Packaging Linux binary..."
-	tar -C $(BUILD_DIR) -zcf $(BUILD_DIR)/$(BINARY_NAME)-$(APP_VERSION)-linux-amd64.tar.gz $(BINARY_NAME)-linux-amd64
+	tar -C $(BUILD_DIR) -zcf $(BUILD_DIR)/$(BINARY_SSD)-$(APP_VERSION)-linux-amd64.tar.gz $(BINARY_SSD)-linux-amd64
+	tar -C $(BUILD_DIR) -zcf $(BUILD_DIR)/$(BINARY_SSC)-$(APP_VERSION)-linux-amd64.tar.gz $(BINARY_SSC)-linux-amd64
 
 .PHONY: package-osx
 package-osx:
 	@echo "Packaging OSX binary..."
-	tar -C $(BUILD_DIR) -zcf $(BUILD_DIR)/$(BINARY_NAME)-$(APP_VERSION)-darwin-amd64.tar.gz $(BINARY_NAME)-darwin-amd64
+	tar -C $(BUILD_DIR) -zcf $(BUILD_DIR)/$(BINARY_SSD)-$(APP_VERSION)-darwin-amd64.tar.gz $(BINARY_SSD)-darwin-amd64
+	tar -C $(BUILD_DIR) -zcf $(BUILD_DIR)/$(BINARY_SSC)-$(APP_VERSION)-darwin-amd64.tar.gz $(BINARY_SSC)-darwin-amd64
 
 .PHONY: package-all
 package-all: package-linux package-osx
 
 .PHONY: docker
 docker:
-	docker build --force-rm -t $(BINARY_NAME) .
+	docker build --force-rm -t $(BINARY_SSD) .
 
 .PHONY: build-in-docker
 build-in-docker: docker
-	docker rm -f $(BINARY_NAME) || true
-	docker create --name $(BINARY_NAME) $(BINARY_NAME)
-	docker cp '$(BINARY_NAME):/opt/' $(BUILD_DIR)
-	docker rm -f $(BINARY_NAME)
+	docker rm -f $(BINARY_SSD) || true
+	docker create --name $(BINARY_SSD) $(BINARY_SSD)
+	docker cp '$(BINARY_SSD):/opt/' $(BUILD_DIR)
+	docker rm -f $(BINARY_SSD)
 
 .PHONY: clean
 clean:
@@ -71,4 +76,10 @@ clean:
 .PHONY: build
 build:
 	@echo "Building native binary..."
-	$(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_NAME)-native-amd64 ./cmd/ssd/
+	$(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_SSD)-native-amd64 ./cmd/ssdaemon
+	$(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_SSC)-native-amd64 ./cmd/ssclient
+
+
+.PHONY: generate
+generate:
+	go generate ./...

@@ -1,0 +1,10 @@
+syntax = "proto3";
+option go_package ="./stub/;api";
+
+package api;
+
+message cpu {
+    float user = 1;
+    float system  = 2;
+    float idle = 3;
+}

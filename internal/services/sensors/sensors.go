@@ -1,5 +1,11 @@
 package sensors
 
+import (
+	"context"
+	"sync"
+	"time"
+)
+
 /*
 type SensorType int
 
@@ -11,5 +17,14 @@ const (
 )
 */
 type Interface interface {
-	Read() Interface
+	Run(ctx context.Context, wg *sync.WaitGroup, out chan<- Interface)
+	GetTimestamp() time.Time
+	Sum(*Interface) *Interface
+	Div(d int32) *Interface
+}
+
+
+type Controller interface {
+	Run(ctx context.Context, wg *sync.WaitGroup)
+	GetAverageAfter (t time.Time) interface
 }

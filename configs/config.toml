@@ -1,6 +1,0 @@
-[logger]
-level = "INFO"
-
-[core]
-N = "5s"
-M = "15s"

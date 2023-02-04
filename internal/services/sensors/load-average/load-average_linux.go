@@ -10,8 +10,9 @@ import (
 	"os/exec"
 	"sync"
 	"syscall"
+	"time"
 
-	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors"
+	"github.com/FRiniZ/system-stats-daemon/internal/storage"
 )
 
 type Sensor struct {
@@ -20,7 +21,52 @@ type Sensor struct {
 	L3 float32
 }
 
-func (s *Sensor) Run(ctx context.Context, out chan<- sensors.Interface) {
+func (s *Sensor) Add(a *Sensor) {
+	s.L1 += a.L1
+	s.L2 += a.L2
+	s.L3 += a.L3
+}
+
+func (s *Sensor) Div(d int32) {
+	s.L1 /= float32(d)
+	s.L2 /= float32(d)
+	s.L3 /= float32(d)
+}
+
+type Controller struct {
+	queue storage.Queue
+}
+
+func New(size int) *Controller {
+	return &Controller{
+		queue: *storage.New(size),
+	}
+}
+
+func (c *Controller) GetAverageAfter(t time.Time) <-chan interface{} {
+	out := make(chan interface{})
+	avg := Sensor{}
+
+	go func() {
+		in := c.queue.GetElementsAfter(t)
+		count := int32(0)
+		for s := range in {
+			count++
+			avg.Add(s.(*Sensor))
+		}
+		if count > 0 {
+			avg.Div(count)
+			out <- avg
+		}
+		close(out)
+	}()
+
+	return out
+}
+
+func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
+	var f1, f2, f3 float32
+
 	cmd := exec.CommandContext(ctx, "/bin/bash", "-c", "while true; do cat /proc/loadavg; sleep 1; done")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
@@ -31,30 +77,26 @@ func (s *Sensor) Run(ctx context.Context, out chan<- sensors.Interface) {
 
 	scanner := bufio.NewScanner(cmdReader)
 
-	wg := &sync.WaitGroup{}
+	if err := cmd.Start(); err != nil {
+		log.Println(err)
+		return
+	}
 
 	wg.Add(1)
 	go func() {
-		defer wg.Done()
-		//state := FSM_CPU_HEADER
 		for scanner.Scan() {
 			text := scanner.Text()
-			fmt.Println("LA:", text)
+			fmt.Sscanf(text, "%f %f %f", &f1, &f2, &f3)
+			c.queue.Push(&Sensor{L1: f1, L2: f2, L3: f3})
 		}
-		fmt.Println("Closed Run3")
+
+		if err := cmd.Wait(); err != nil {
+			log.Println(err)
+		}
+
+		fmt.Println("Controller[Load-Average] has closed")
+		wg.Done()
 	}()
 
-	if err := cmd.Start(); err != nil {
-		log.Fatal(err)
-	}
-
-	wg.Wait()
-
-	if err := cmd.Wait(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (s *Sensor) Read() sensors.Interface {
-	return &Sensor{s.L1, s.L2, s.L3}
+	fmt.Println("Controller[Load-Average] has started")
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/FRiniZ/system-stats-daemon/internal/app"
+	"github.com/FRiniZ/system-stats-daemon/internal/app/ssdaemon"
 )
 
 var configFile string
@@ -22,7 +23,7 @@ func init() {
 }
 
 type Config struct {
-	app.Config
+	ssdaemon.Config
 }
 
 func NewConfig() Config {

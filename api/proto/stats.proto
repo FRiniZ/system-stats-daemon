@@ -1,0 +1,33 @@
+syntax = "proto3";
+option go_package ="./stub/;api";
+
+import "cpu.proto";
+import "load-average.proto";
+import "load-disk.proto";
+
+package api;
+
+enum STATS {
+    NOTHING         = 0;
+    ALL             = 1;
+    CPU             = 2;
+    LOADAVERAGE     = 3;
+    LOADDISK        = 4;
+}
+
+message Responce {
+    cpu            CPU     = 1;
+    loadaverage    LoadAvg = 2;    
+    loaddisk       Disks   = 3;
+}
+
+
+message Request {
+    int32 N        = 1;
+    int32 M        = 2;
+    STATS bitmask  = 3;
+}
+
+service SSD {
+    rpc Subsribe (Request) returns  (stream Responce) {}    
+}
