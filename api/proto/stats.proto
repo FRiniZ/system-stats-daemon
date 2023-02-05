@@ -11,8 +11,8 @@ enum STATS {
     NOTHING         = 0;
     ALL             = 1;
     CPU             = 2;
-    LOADAVERAGE     = 3;
-    LOADDISK        = 4;
+    LOADAVERAGE     = 4;
+    LOADDISK        = 8;
 }
 
 message Responce {

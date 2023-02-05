@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/BurntSushi/toml"
@@ -48,7 +49,7 @@ func NewConfig() Config {
 		config.GRPC.Port = grpcPort
 	}
 
-	fmt.Println("Config:", config)
+	log.Println("Config:", config)
 	return config
 }
 

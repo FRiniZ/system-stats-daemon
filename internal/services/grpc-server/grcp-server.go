@@ -45,20 +45,20 @@ func (s grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) er
 		controllers = append(controllers, loadavg.New(int(M)))
 		controllers = append(controllers, iostatcpu.New(int(M)))
 		controllers = append(controllers, iostatdisk.New(int(M)))
-	}
+	} else {
+		if sensors&api.STATS_CPU == api.STATS_CPU {
+			log.Printf("[%s]Request CPU stats\n", IPaddr)
+			controllers = append(controllers, iostatcpu.New(int(M)))
+		}
 
-	if sensors&api.STATS_CPU == api.STATS_CPU {
-		log.Printf("[%s]Request CPU stats\n", IPaddr)
-		controllers = append(controllers, iostatcpu.New(int(M)))
-	}
-
-	if sensors&api.STATS_LOADAVERAGE == api.STATS_LOADAVERAGE {
-		log.Printf("[%s]Request LoadAverage stats\n", IPaddr)
-		controllers = append(controllers, loadavg.New(int(M)))
-	}
-	if sensors&api.STATS_LOADDISK == api.STATS_LOADDISK {
-		log.Printf("[%s]Request LoadDisk stats\n", IPaddr)
-		controllers = append(controllers, iostatdisk.New(int(M)))
+		if sensors&api.STATS_LOADAVERAGE == api.STATS_LOADAVERAGE {
+			log.Printf("[%s]Request LoadAverage stats\n", IPaddr)
+			controllers = append(controllers, loadavg.New(int(M)))
+		}
+		if sensors&api.STATS_LOADDISK == api.STATS_LOADDISK {
+			log.Printf("[%s]Request LoadDisk stats\n", IPaddr)
+			controllers = append(controllers, iostatdisk.New(int(M)))
+		}
 	}
 
 	for _, ctrl := range controllers {

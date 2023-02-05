@@ -34,6 +34,7 @@ type Application struct {
 }
 
 func (app *Application) Run() {
+	var stats api.STATS
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGHUP,
 		syscall.SIGINT,
@@ -54,20 +55,28 @@ func (app *Application) Run() {
 	defer conn.Close()
 
 	grpcClient := api.NewSSDClient(conn)
-	var stats api.STATS
+
+	log.Println("Request sensors:")
 	for _, name := range app.Conf.Core.Sensors {
 		switch name {
 		case "ALL":
+			log.Println("               : ALL")
+			stats = 0
 			stats |= api.STATS_ALL
+			goto exitfor
 		case "CPU":
 			stats |= api.STATS_CPU
+			log.Println("               : CPU")
 		case "LOADAVERAGE":
 			stats |= api.STATS_LOADAVERAGE
+			log.Println("               : LOADAVERAGE")
 		case "LOADDISK":
 			stats |= api.STATS_LOADDISK
+			log.Println("               : LOADDIS")
 		}
 	}
-	log.Println("Stats:", stats)
+
+exitfor:
 
 	ctxVal := context.WithValue(ctx, "ClientID", app.Conf.ID)
 

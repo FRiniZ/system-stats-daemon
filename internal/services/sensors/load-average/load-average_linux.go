@@ -103,7 +103,9 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		if err := cmd.Wait(); err != nil {
-			log.Println(err)
+			if err.Error() != "signal: killed" {
+				log.Println(err)
+			}
 		}
 		wg.Done()
 	}()
