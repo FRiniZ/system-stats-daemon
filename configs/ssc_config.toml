@@ -1,5 +1,4 @@
-[logger]
-level = "INFO"
+ClientID = "Rini1"
 
 [GRPC]
 host = "localhost"
@@ -8,4 +7,5 @@ port = "10000"
 [core]
 N = "5s"
 M = "15s"
-Sensors = ["ALL"]
+# ALL, CPU, LOADAVERAGE, LOADDISK
+Sensors = ["CPU"]

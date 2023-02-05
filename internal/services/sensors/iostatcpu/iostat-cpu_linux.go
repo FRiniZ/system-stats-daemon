@@ -1,6 +1,6 @@
 //go:build linux
 
-package loadavg
+package iostatcpu
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -18,32 +19,46 @@ import (
 )
 
 type Sensor struct {
-	L1 float32
-	L2 float32
-	L3 float32
+	User   float32
+	Nice   float32
+	System float32
+	IOWait float32
+	Steal  float32
+	Idle   float32
 }
 
-func (s *Sensor) Add(a *Sensor) {
-	s.L1 += a.L1
-	s.L2 += a.L2
-	s.L3 += a.L3
+func (c *Sensor) Add(a *Sensor) {
+	c.User += a.User
+	c.Nice += a.Nice
+	c.System += a.System
+	c.IOWait += a.IOWait
+	c.Steal += a.Steal
+	c.Idle += a.Idle
 }
 
-func (s *Sensor) Div(d int32) {
-	s.L1 /= float32(d)
-	s.L2 /= float32(d)
-	s.L3 /= float32(d)
+func (c *Sensor) Div(n int32) {
+	c.User /= float32(n)
+	c.Nice /= float32(n)
+	c.System /= float32(n)
+	c.IOWait /= float32(n)
+	c.Steal /= float32(n)
+	c.Idle /= float32(n)
 }
 
 func (s *Sensor) MakeResponse() *api.Responce {
 	return &api.Responce{
-		LoadAvg: &api.Loadaverage{
-			L1: s.L1,
-			L2: s.L2,
-			L3: s.L3,
+		CPU: &api.Cpu{
+			User:   s.User,
+			System: s.System,
+			Idle:   s.Idle,
 		},
 	}
 }
+
+const (
+	FSM_CPU_HEADER = iota
+	FSM_CPU_BODY
+)
 
 type Controller struct {
 	queue storage.Queue
@@ -77,9 +92,8 @@ func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
 }
 
 func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
-	var f1, f2, f3 float32
-
-	cmd := exec.CommandContext(ctx, "/bin/bash", "-c", "while true; do cat /proc/loadavg; sleep 1; done")
+	var s *Sensor
+	cmd := exec.CommandContext(ctx, "iostat", "-c", "1")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	cmdReader, err := cmd.StdoutPipe()
@@ -90,20 +104,34 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 	scanner := bufio.NewScanner(cmdReader)
 
 	if err := cmd.Start(); err != nil {
-		log.Println(err)
-		return
+		log.Fatal(err)
 	}
+
+	state := FSM_CPU_HEADER
 
 	wg.Add(1)
 	go func() {
 		for scanner.Scan() {
 			text := scanner.Text()
-			fmt.Sscanf(text, "%f %f %f", &f1, &f2, &f3)
-			c.queue.Push(&Sensor{L1: f1, L2: f2, L3: f3})
+			text = strings.ReplaceAll(text, "  ", " ")
+			switch state {
+			case FSM_CPU_HEADER:
+				if strings.Contains(text, "avg-cpu:") {
+					s = &Sensor{}
+					state = FSM_CPU_BODY
+				}
+			case FSM_CPU_BODY:
+				text = strings.ReplaceAll(text, ",", ".")
+				fmt.Sscanf(text, "%f %f %f %f %f %f", &s.User, &s.Nice, &s.System, &s.IOWait, &s.Steal, &s.Idle)
+				state = FSM_CPU_HEADER
+				c.queue.Push(s)
+			}
 		}
 
 		if err := cmd.Wait(); err != nil {
-			log.Println(err)
+			if err.Error() != "signal: killed" {
+				log.Println(err)
+			}
 		}
 		wg.Done()
 	}()

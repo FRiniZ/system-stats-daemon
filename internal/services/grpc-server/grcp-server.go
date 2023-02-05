@@ -2,14 +2,16 @@ package grpcserver
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"sync"
 	"time"
 
 	api "github.com/FRiniZ/system-stats-daemon/api/stub"
-	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/iostat"
+	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/common"
+	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/iostatcpu"
+	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/iostatdisk"
 	loadavg "github.com/FRiniZ/system-stats-daemon/internal/services/sensors/load-average"
+	"google.golang.org/grpc/peer"
 )
 
 type grpcserver struct {
@@ -25,50 +27,47 @@ func (s grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) er
 	s.wg.Add(1)
 	defer s.wg.Done()
 
+	IPaddr := "unknown"
+	p, _ := peer.FromContext(stream.Context())
+	IPaddr = p.Addr.String()
+
 	ctx, cancel := context.WithCancel(stream.Context())
 	defer cancel()
 
+	var controllers []common.Controller
 	wg := &sync.WaitGroup{}
 	N := time.Duration(req.GetN())
 	M := time.Duration(req.GetM())
 	sensors := req.GetBitmask()
 
-	log.Println("Request stats:", sensors)
-
-	if sensors == api.STATS_ALL {
-		log.Println("Request to ALL Sensors")
+	if sensors&api.STATS_ALL == api.STATS_ALL {
+		log.Printf("[%s]Request ALL stats\n", IPaddr)
+		controllers = append(controllers, loadavg.New(int(M)))
+		controllers = append(controllers, iostatcpu.New(int(M)))
+		controllers = append(controllers, iostatdisk.New(int(M)))
 	}
+
 	if sensors&api.STATS_CPU == api.STATS_CPU {
-		log.Println("Request to CPU sensor")
+		log.Printf("[%s]Request CPU stats\n", IPaddr)
+		controllers = append(controllers, iostatcpu.New(int(M)))
 	}
 
 	if sensors&api.STATS_LOADAVERAGE == api.STATS_LOADAVERAGE {
-		log.Println("Request to LoadAverage sensor")
+		log.Printf("[%s]Request LoadAverage stats\n", IPaddr)
+		controllers = append(controllers, loadavg.New(int(M)))
 	}
 	if sensors&api.STATS_LOADDISK == api.STATS_LOADDISK {
-		log.Println("Request to Disks sensor")
+		log.Printf("[%s]Request LoadDisk stats\n", IPaddr)
+		controllers = append(controllers, iostatdisk.New(int(M)))
 	}
 
-	cLA := loadavg.New(int(M))
-	cIOS := iostat.New(int(M))
+	for _, ctrl := range controllers {
+		ctrl.Run(ctx, wg)
+	}
 
-	cLA.Run(ctx, wg)
-	cIOS.Run(ctx, wg)
-
-	sendRequst := func(in <-chan interface{}) {
+	sendRequst := func(in <-chan common.Sensor) {
 		for v := range in {
-			switch v.(type) {
-			case interface{}:
-				s, ok := v.(loadavg.Sensor)
-				if ok {
-					log.Println("LA Sensor", s)
-				} else {
-					log.Println("Interface")
-				}
-			case loadavg.Sensor:
-				fmt.Println("LA Sensor")
-			}
-			//stream.Send()
+			stream.Send(v.MakeResponse())
 		}
 	}
 
@@ -80,15 +79,16 @@ func (s grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) er
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				go sendRequst(cLA.GetAverageAfter(time.Now().Add(M * time.Second * -1)))
-				go sendRequst(cIOS.GetAverageAfter(time.Now().Add(M * time.Second * -1)))
+				for _, ctrl := range controllers {
+					go sendRequst(ctrl.GetAverageAfter(time.Now().Add(M * time.Second * -1)))
+				}
 			}
 		}
 	}()
 
-	log.Println("GRPC-Stream has stared")
+	log.Printf("[%s]GRPC-Stream has started\n", IPaddr)
 	wg.Wait()
-	log.Println("GRPC-Stream has closed")
+	log.Printf("[%s]GRPC-Stream has closed\n", IPaddr)
 	return nil
 }
 

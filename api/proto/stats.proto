@@ -16,9 +16,9 @@ enum STATS {
 }
 
 message Responce {
-    cpu            CPU     = 1;
-    loadaverage    LoadAvg = 2;    
-    loaddisk       Disks   = 3;
+    cpu                    CPU     = 1;
+    loadaverage            LoadAvg = 2;    
+    repeated loaddisk      Disks   = 3;
 }
 
 
@@ -31,3 +31,4 @@ message Request {
 service SSD {
     rpc Subsribe (Request) returns  (stream Responce) {}    
 }
+

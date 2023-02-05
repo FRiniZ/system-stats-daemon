@@ -25,6 +25,8 @@ type Config struct {
 		M       time.Duration `toml:"M"`
 		Sensors []string      `toml:"Sensors"`
 	} `toml:"core"`
+
+	ID string `toml:"ClientID"`
 }
 
 type Application struct {
@@ -55,21 +57,21 @@ func (app *Application) Run() {
 	var stats api.STATS
 	for _, name := range app.Conf.Core.Sensors {
 		switch name {
+		case "ALL":
+			stats |= api.STATS_ALL
 		case "CPU":
 			stats |= api.STATS_CPU
 		case "LOADAVERAGE":
 			stats |= api.STATS_LOADAVERAGE
 		case "LOADDISK":
 			stats |= api.STATS_LOADDISK
-		case "ALL":
-			stats |= api.STATS_CPU
-			stats |= api.STATS_LOADAVERAGE
-			stats |= api.STATS_LOADDISK
 		}
 	}
 	log.Println("Stats:", stats)
 
-	stream, err := grpcClient.Subsribe(ctx, &api.Request{
+	ctxVal := context.WithValue(ctx, "ClientID", app.Conf.ID)
+
+	stream, err := grpcClient.Subsribe(ctxVal, &api.Request{
 		N:       int32(app.Conf.Core.N.Seconds()),
 		M:       int32(app.Conf.Core.M.Seconds()),
 		Bitmask: stats,
@@ -84,6 +86,20 @@ func (app *Application) Run() {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		log.Println(recv)
+
+		if recv.GetCPU() != nil {
+			log.Printf("%-18s[User:%5.2f%% System:%5.2f%% Idle:%5.2f%%]", "CPU", recv.GetCPU().User, recv.GetCPU().System, recv.GetCPU().Idle)
+		}
+
+		if recv.GetLoadAvg() != nil {
+			log.Printf("%-18s[1m:%5.2f 5m:%5.2f 15m:%5.2f]", "LoadAverage", recv.GetLoadAvg().L1, recv.GetLoadAvg().L2, recv.GetLoadAvg().L3)
+		}
+
+		if recv.GetDisks() != nil {
+			log.Printf("%-18s%8s%14s%14s\n", "Device", "tps", "Read KB/s", "Write KB/s")
+			for _, d := range recv.GetDisks() {
+				log.Printf("%-18s%8.2f%14.2f%14.2f\n", d.Name, d.TPS, d.ReadKBs, d.WriteKBs)
+			}
+		}
 	}
 }

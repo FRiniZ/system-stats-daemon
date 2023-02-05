@@ -10,10 +10,14 @@ import (
 	"github.com/FRiniZ/system-stats-daemon/internal/app/ssdaemon"
 )
 
+var grpcHost string
+var grpcPort string
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "/etc/ssd/config.toml", "Path to configuration file")
+	flag.StringVar(&grpcHost, "host", "", "GRPC Host")
+	flag.StringVar(&grpcPort, "port", "", "GRPC Port")
+	flag.StringVar(&configFile, "config", "", "Path to configuration file")
 	flag.Parse()
 
 	if flag.Arg(0) == "version" {
@@ -28,10 +32,22 @@ type Config struct {
 
 func NewConfig() Config {
 	var config Config
-	if err := config.LoadFileTOML(configFile); err != nil {
-		fmt.Fprintf(os.Stderr, "Can't load config file:%v error: %v\n", configFile, err)
-		os.Exit(1)
+
+	if configFile != "" {
+		if err := config.LoadFileTOML(configFile); err != nil {
+			fmt.Fprintf(os.Stderr, "Can't load config file:%v error: %v\n", configFile, err)
+			os.Exit(1)
+		}
 	}
+
+	if grpcHost != "" {
+		config.GRPC.Host = grpcHost
+	}
+
+	if grpcPort != "" {
+		config.GRPC.Port = grpcPort
+	}
+
 	fmt.Println("Config:", config)
 	return config
 }
