@@ -4,6 +4,8 @@ option go_package ="./stub/;api";
 import "cpu.proto";
 import "load-average.proto";
 import "load-disk.proto";
+import "dfsize.proto";
+import "dfinode.proto";
 
 package api;
 
@@ -13,12 +15,16 @@ enum STATS {
     CPU             = 2;
     LOADAVERAGE     = 4;
     LOADDISK        = 8;
+    SIZEDISK        = 16;
+    INODEDISK       = 32;
 }
 
 message Responce {
     cpu                    CPU     = 1;
     loadaverage            LoadAvg = 2;    
     repeated loaddisk      Disks   = 3;
+    repeated dfsize        Dfsize  = 4;
+    repeated dfinode       Dfinode = 5;
 }
 
 

@@ -7,5 +7,5 @@ port = "10000"
 [core]
 N = "5s"
 M = "15s"
-# ALL, CPU, LOADAVERAGE, LOADDISK
-Sensors = ["CPU"]
+# ALL, CPU, LOADAVERAGE, LOADDISK, SIZEDISK, INODEDISK
+Sensors = ["SIZEDISK"]

@@ -72,15 +72,19 @@ func (app *Application) Run() {
 			log.Println("               : LOADAVERAGE")
 		case "LOADDISK":
 			stats |= api.STATS_LOADDISK
-			log.Println("               : LOADDIS")
+			log.Println("               : LOADDISK")
+		case "SIZEDISK":
+			stats |= api.STATS_SIZEDISK
+			log.Println("               : SIZEDISK")
+		case "INODEDISK":
+			stats |= api.STATS_INODEDISK
+			log.Println("               : INODEDISK")
 		}
 	}
 
 exitfor:
 
-	ctxVal := context.WithValue(ctx, "ClientID", app.Conf.ID)
-
-	stream, err := grpcClient.Subsribe(ctxVal, &api.Request{
+	stream, err := grpcClient.Subsribe(ctx, &api.Request{
 		N:       int32(app.Conf.Core.N.Seconds()),
 		M:       int32(app.Conf.Core.M.Seconds()),
 		Bitmask: stats,
@@ -108,6 +112,12 @@ exitfor:
 			log.Printf("%-18s%8s%14s%14s\n", "Device", "tps", "Read KB/s", "Write KB/s")
 			for _, d := range recv.GetDisks() {
 				log.Printf("%-18s%8.2f%14.2f%14.2f\n", d.Name, d.TPS, d.ReadKBs, d.WriteKBs)
+			}
+		}
+		if recv.GetDfsize() != nil {
+			log.Printf("%-18s%15s%14s%%\n", "FileSystem", "Used", "Use")
+			for _, d := range recv.GetDfsize() {
+				log.Printf("%-18s%14dM%14d%%\n", d.Name, d.Used, d.Use)
 			}
 		}
 	}

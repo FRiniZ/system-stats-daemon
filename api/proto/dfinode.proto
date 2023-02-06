@@ -1,0 +1,10 @@
+syntax = "proto3";
+option go_package ="./stub/;api";
+
+package api;
+
+message dfinode {
+    string  Name = 1;
+    int32   IUsed = 2;
+    int32   IUse  = 3;    
+}

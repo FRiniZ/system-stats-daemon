@@ -8,6 +8,7 @@ import (
 
 	api "github.com/FRiniZ/system-stats-daemon/api/stub"
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/common"
+	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/dfsize"
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/iostatcpu"
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/iostatdisk"
 	loadavg "github.com/FRiniZ/system-stats-daemon/internal/services/sensors/load-average"
@@ -16,11 +17,12 @@ import (
 
 type grpcserver struct {
 	api.UnimplementedSSDServer
-	wg *sync.WaitGroup
+	wg   *sync.WaitGroup
+	lock sync.Mutex
 }
 
 func New(wg *sync.WaitGroup) api.SSDServer {
-	return grpcserver{wg: wg}
+	return grpcserver{wg: wg, lock: sync.Mutex{}}
 }
 
 func (s grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) error {
@@ -45,6 +47,7 @@ func (s grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) er
 		controllers = append(controllers, loadavg.New(int(M)))
 		controllers = append(controllers, iostatcpu.New(int(M)))
 		controllers = append(controllers, iostatdisk.New(int(M)))
+		controllers = append(controllers, dfsize.New(int(M)))
 	} else {
 		if sensors&api.STATS_CPU == api.STATS_CPU {
 			log.Printf("[%s]Request CPU stats\n", IPaddr)
@@ -59,6 +62,10 @@ func (s grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) er
 			log.Printf("[%s]Request LoadDisk stats\n", IPaddr)
 			controllers = append(controllers, iostatdisk.New(int(M)))
 		}
+		if sensors&api.STATS_SIZEDISK == api.STATS_SIZEDISK {
+			log.Printf("[%s]Request SizeDisk stats\n", IPaddr)
+			controllers = append(controllers, dfsize.New(int(M)))
+		}
 	}
 
 	for _, ctrl := range controllers {
@@ -67,7 +74,9 @@ func (s grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) er
 
 	sendRequst := func(in <-chan common.Sensor) {
 		for v := range in {
+			s.lock.Lock()
 			stream.Send(v.MakeResponse())
+			s.lock.Unlock()
 		}
 	}
 
