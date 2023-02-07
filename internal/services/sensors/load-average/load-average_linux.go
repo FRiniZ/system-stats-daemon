@@ -17,6 +17,10 @@ import (
 	"github.com/FRiniZ/system-stats-daemon/internal/storage"
 )
 
+const (
+	Name string = "LA"
+)
+
 type Sensor struct {
 	L1 float32
 	L2 float32
@@ -51,8 +55,7 @@ type Controller struct {
 
 func New(size int) *Controller {
 	return &Controller{
-		queue: *storage.New(size),
-	}
+		queue: *storage.New(size)}
 }
 
 func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
@@ -111,7 +114,12 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 	}()
 }
 
-func (c *Controller) CheckSensor(i interface{}) bool {
-	_, ok := i.(Sensor)
-	return ok
+func (c *Controller) GetName() string {
+	return Name
+}
+
+func (c *Controller) SetMaxM(M int32) {
+	if c.queue.SetSize(M) {
+		log.Printf("[%s] Changed size of queue to:%d", Name, M)
+	}
 }

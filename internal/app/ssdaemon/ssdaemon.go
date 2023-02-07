@@ -45,18 +45,19 @@ func (app *Application) Run() {
 	}
 
 	wg := &sync.WaitGroup{}
-	grpcSrv := grpc.NewServer(opts...)
-
-	api.RegisterSSDServer(grpcSrv, grpcserver.New(wg))
+	grpcBase := grpc.NewServer(opts...)
+	grpcSrv := grpcserver.New(wg)
+	grpcSrv.Start(ctx, 0)
+	api.RegisterSSDServer(grpcBase, grpcSrv)
 
 	go func() {
 		<-ctx.Done()
-		grpcSrv.Stop()
+		grpcBase.Stop()
 		log.Println("GRPC-server stopping...")
 	}()
 
 	log.Printf("GRPC-server listening:[%s:%s]\n", app.Conf.GRPC.Host, app.Conf.GRPC.Port)
-	grpcSrv.Serve(lis)
+	grpcBase.Serve(lis)
 
 	wg.Wait()
 	log.Println("App closed")

@@ -15,5 +15,6 @@ type Sensor interface {
 type Controller interface {
 	Run(context.Context, *sync.WaitGroup)
 	GetAverageAfter(time.Time) <-chan Sensor
-	CheckSensor(interface{}) bool
+	GetName() string
+	SetMaxM(int32)
 }

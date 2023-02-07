@@ -8,4 +8,4 @@ port = "10000"
 N = "5s"
 M = "15s"
 # ALL, CPU, LOADAVERAGE, LOADDISK, SIZEDISK, INODEDISK
-Sensors = ["SIZEDISK"]
+Sensors = ["LOADAVERAGE"]
