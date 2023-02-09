@@ -31,22 +31,22 @@ type Sensor struct {
 	Idle   float32
 }
 
-func (c *Sensor) Add(a *Sensor) {
-	c.User += a.User
-	c.Nice += a.Nice
-	c.System += a.System
-	c.IOWait += a.IOWait
-	c.Steal += a.Steal
-	c.Idle += a.Idle
+func (s *Sensor) Add(a *Sensor) {
+	s.User += a.User
+	s.Nice += a.Nice
+	s.System += a.System
+	s.IOWait += a.IOWait
+	s.Steal += a.Steal
+	s.Idle += a.Idle
 }
 
-func (c *Sensor) Div(n int32) {
-	c.User /= float32(n)
-	c.Nice /= float32(n)
-	c.System /= float32(n)
-	c.IOWait /= float32(n)
-	c.Steal /= float32(n)
-	c.Idle /= float32(n)
+func (s *Sensor) Div(n int32) {
+	s.User /= float32(n)
+	s.Nice /= float32(n)
+	s.System /= float32(n)
+	s.IOWait /= float32(n)
+	s.Steal /= float32(n)
+	s.Idle /= float32(n)
 }
 
 func (s *Sensor) MakeResponse() *api.Responce {
@@ -145,7 +145,5 @@ func (c *Controller) GetName() string {
 }
 
 func (c *Controller) SetMaxM(M int32) {
-	if c.queue.SetSize(M) {
-		log.Printf("[%s] Changed size of queue to:%d", Name, M)
-	}
+	c.queue.SetSize(c.GetName(), M)
 }

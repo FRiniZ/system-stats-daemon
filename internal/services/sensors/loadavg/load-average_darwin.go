@@ -2,6 +2,7 @@
 
 package loadavg
 
+/*
 import (
 	"bytes"
 	"context"
@@ -80,3 +81,4 @@ func (s *Sensor) Read() sensors.Interface {
 
 	return &Sensor{L1: f1, L2: f2, L3: f3}
 }
+*/

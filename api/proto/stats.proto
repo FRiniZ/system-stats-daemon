@@ -6,6 +6,7 @@ import "load-average.proto";
 import "load-disk.proto";
 import "dfsize.proto";
 import "dfinode.proto";
+import "google/protobuf/duration.proto";
 
 package api;
 
@@ -29,9 +30,9 @@ message Responce {
 
 
 message Request {
-    int32 N        = 1;
-    int32 M        = 2;
-    STATS bitmask  = 3;
+    google.protobuf.Duration    N        = 1;
+    google.protobuf.Duration    M        = 2;
+    STATS                       bitmask  = 3;
 }
 
 service SSD {

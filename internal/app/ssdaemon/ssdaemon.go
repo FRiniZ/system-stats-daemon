@@ -41,18 +41,19 @@ func (app *Application) Run() {
 
 	lis, err := net.Listen("tcp", net.JoinHostPort(app.Conf.GRPC.Host, app.Conf.GRPC.Port))
 	if err != nil {
-		log.Fatalln(err)
+		log.Printf("Can't bind addr[%s:%s]:%v\n", app.Conf.GRPC.Host, app.Conf.GRPC.Port, err)
+		return
 	}
 
 	wg := &sync.WaitGroup{}
 	grpcBase := grpc.NewServer(opts...)
-	grpcSrv := grpcserver.New(wg)
+	grpcSrv := grpcserver.NewGRPCServer(wg)
 	grpcSrv.Start(ctx, 0)
 	api.RegisterSSDServer(grpcBase, grpcSrv)
 
 	go func() {
 		<-ctx.Done()
-		grpcBase.Stop()
+		grpcBase.GracefulStop()
 		log.Println("GRPC-server stopping...")
 	}()
 

@@ -2,6 +2,8 @@ package ssclient
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -10,8 +12,10 @@ import (
 	"time"
 
 	api "github.com/FRiniZ/system-stats-daemon/api/stub"
+	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 type Config struct {
@@ -48,8 +52,8 @@ func (app *Application) Run() {
 	defer cancelDial()
 
 	if err != nil {
-		log.Println(err)
-		log.Fatalf("Can't connect to GRPC-Server[%s:%s]\n", app.Conf.GRPC.Host, app.Conf.GRPC.Port)
+		log.Printf("Can't connect to GRPC-Server[%s:%s]: %v\n", app.Conf.GRPC.Host, app.Conf.GRPC.Port, err)
+		return
 	}
 
 	defer conn.Close()
@@ -57,47 +61,48 @@ func (app *Application) Run() {
 	grpcClient := api.NewSSDClient(conn)
 
 	log.Println("Request sensors:")
+stoploop:
 	for _, name := range app.Conf.Core.Sensors {
+		log.Println("               : ", name)
 		switch name {
-		case "ALL":
-			log.Println("               : ALL")
+		case common.ALL:
 			stats = 0
 			stats |= api.STATS_ALL
-			goto exitfor
-		case "CPU":
+			break stoploop
+		case common.CPU:
 			stats |= api.STATS_CPU
-			log.Println("               : CPU")
-		case "LOADAVERAGE":
+		case common.LOADAVERAGE:
 			stats |= api.STATS_LOADAVERAGE
-			log.Println("               : LOADAVERAGE")
-		case "LOADDISK":
+		case common.LOADDISK:
 			stats |= api.STATS_LOADDISK
-			log.Println("               : LOADDISK")
-		case "SIZEDISK":
+		case common.SIZEDISK:
 			stats |= api.STATS_SIZEDISK
-			log.Println("               : SIZEDISK")
-		case "INODEDISK":
+		case common.INODEDISK:
 			stats |= api.STATS_INODEDISK
-			log.Println("               : INODEDISK")
 		}
 	}
 
-exitfor:
-
 	stream, err := grpcClient.Subsribe(ctx, &api.Request{
-		N:       int32(app.Conf.Core.N.Seconds()),
-		M:       int32(app.Conf.Core.M.Seconds()),
+		N:       durationpb.New(app.Conf.Core.N),
+		M:       durationpb.New(app.Conf.Core.M),
 		Bitmask: stats,
 	})
 
+	if err != nil {
+		fmt.Printf("Can't call remote function:Subscribe:%v\n", err)
+		return
+	}
+
 	for {
 		recv, err := stream.Recv()
-		if err == io.EOF {
+
+		if errors.Is(err, io.EOF) || stream.Context().Err() == context.Canceled {
 			break
 		}
 
 		if err != nil {
-			log.Fatalln(err)
+			log.Printf("stream.Recv: %v, %T\n", err, err)
+			break
 		}
 
 		if recv.GetCPU() != nil {
@@ -114,10 +119,17 @@ exitfor:
 				log.Printf("%-18s%8.2f%14.2f%14.2f\n", d.Name, d.TPS, d.ReadKBs, d.WriteKBs)
 			}
 		}
+
 		if recv.GetDfsize() != nil {
 			log.Printf("%-18s%15s%14s%%\n", "FileSystem", "Used", "Use")
 			for _, d := range recv.GetDfsize() {
 				log.Printf("%-18s%14dM%14d%%\n", d.Name, d.Used, d.Use)
+			}
+		}
+		if recv.GetDfinode() != nil {
+			log.Printf("%-18s%15s%14s%%\n", "FileSystem", "IUsed", "IUse")
+			for _, d := range recv.GetDfinode() {
+				log.Printf("%-18s%14dM%14d%%\n", d.Name, d.IUsed, d.IUse)
 			}
 		}
 	}

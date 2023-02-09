@@ -184,7 +184,5 @@ func (c *Controller) GetName() string {
 }
 
 func (c *Controller) SetMaxM(M int32) {
-	if c.queue.SetSize(M) {
-		log.Printf("[%s] Changed size of queue to:%d", Name, M)
-	}
+	c.queue.SetSize(c.GetName(), M)
 }

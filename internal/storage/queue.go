@@ -3,6 +3,7 @@ package storage
 import (
 	"container/list"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 )
@@ -22,14 +23,13 @@ func New(size int) *Queue {
 	return &Queue{rwm: sync.RWMutex{}, list: list.New(), size: size}
 }
 
-func (l *Queue) SetSize(newsize int32) bool {
+func (l *Queue) SetSize(owner string, newsize int32) {
 	l.rwm.Lock()
 	defer l.rwm.Unlock()
 	if int(newsize) > l.size {
 		l.size = int(newsize)
-		return true
+		log.Printf("[%s] Changed size of queue to:%d", owner, newsize)
 	}
-	return false
 }
 
 func (l *Queue) Push(s interface{}) {
@@ -54,16 +54,17 @@ func (l *Queue) GetElementsAfter(t time.Time) <-chan interface{} {
 	go func() {
 		defer close(out)
 
-		lastElm := l.list.Back().Value.(element)
-		if lastElm.timestamp.Unix() <= t.Unix() {
-			for e := l.list.Front(); e != nil; e = e.Next() {
-				elm := e.Value.(element)
-				if elm.timestamp.Before(t) {
-					return
-				}
-				out <- elm.data
+		//		t.Add(1 * time.Second)
+		//i		lastElm := l.list.Back().Value.(element)
+		//		if lastElm.timestamp.Unix() <= t.Unix() {
+		for e := l.list.Front(); e != nil; e = e.Next() {
+			elm := e.Value.(element)
+			if elm.timestamp.Before(t) {
+				return
 			}
+			out <- elm.data
 		}
+		//		}
 	}()
 
 	return out

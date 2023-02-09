@@ -8,6 +8,15 @@ import (
 	api "github.com/FRiniZ/system-stats-daemon/api/stub"
 )
 
+const (
+	ALL         string = "ALL"
+	CPU         string = "CPU"
+	LOADAVERAGE string = "LOADAVERAGE"
+	LOADDISK    string = "LOADDISK"
+	SIZEDISK    string = "SIZEDISK"
+	INODEDISK   string = "INODEDISK"
+)
+
 type Sensor interface {
 	MakeResponse() *api.Responce
 }
