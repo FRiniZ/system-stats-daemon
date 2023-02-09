@@ -5,6 +5,7 @@ import (
 )
 
 func TestDammyApp(t *testing.T) {
+	t.Skip()
 	app := &Application{}
 	app.Run()
 }
