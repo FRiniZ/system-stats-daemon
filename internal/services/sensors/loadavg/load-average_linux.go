@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	Name string = "LA"
+	Name string = "Load average"
 )
 
 type Sensor struct {
@@ -54,8 +54,7 @@ type Controller struct {
 }
 
 func New(size int) *Controller {
-	return &Controller{
-		queue: *storage.New(size)}
+	return &Controller{queue: *storage.New(size)}
 }
 
 func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
@@ -118,6 +117,6 @@ func (c *Controller) GetName() string {
 	return Name
 }
 
-func (c *Controller) SetMaxM(M int32) {
-	c.queue.SetSize(c.GetName(), M)
+func (c *Controller) SetMaxM(m int32) {
+	c.queue.SetSize(c.GetName(), m)
 }

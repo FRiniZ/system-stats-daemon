@@ -11,9 +11,11 @@ import (
 	"github.com/FRiniZ/system-stats-daemon/internal/app/ssdaemon"
 )
 
-var grpcHost string
-var grpcPort string
-var configFile string
+var (
+	grpcHost   string
+	grpcPort   string
+	configFile string
+)
 
 func init() {
 	flag.StringVar(&grpcHost, "host", "", "GRPC Host")

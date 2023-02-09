@@ -47,7 +47,7 @@ func (app *Application) Run() {
 
 	wg := &sync.WaitGroup{}
 	grpcBase := grpc.NewServer(opts...)
-	grpcSrv := grpcserver.NewGRPCServer(wg)
+	grpcSrv := grpcserver.New(wg)
 	grpcSrv.Start(ctx, 0)
 	api.RegisterSSDServer(grpcBase, grpcSrv)
 

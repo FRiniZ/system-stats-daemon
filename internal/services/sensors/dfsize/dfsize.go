@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	Name string = "DFSIZE"
+	Name string = "Disk usage"
 )
 
 type Disk struct {
@@ -28,7 +28,7 @@ type Disk struct {
 	Use  int32
 }
 
-func (d *Disk) Add(a *Disk) {
+func (d *Disk) Add(a Disk) {
 	d.Used += a.Used
 	d.Use += a.Use
 }
@@ -44,7 +44,7 @@ func (d *MDisks) Add(a *MDisks) {
 	for k, v := range *a {
 		v2, ok := (*d)[k]
 		if ok {
-			v2.Add(&v)
+			v2.Add(v)
 		} else {
 			(*d)[k] = v
 		}
@@ -84,8 +84,8 @@ func (s *Sensor) MakeResponse() *api.Responce {
 }
 
 const (
-	FSM_DEVICE_HEADER = iota
-	FSM_DEVICE_BODY
+	FsmDeviceHeader = iota
+	FsmDeviceBody
 )
 
 type Controller struct {
@@ -93,8 +93,7 @@ type Controller struct {
 }
 
 func New(size int) *Controller {
-	return &Controller{
-		queue: *storage.New(size)}
+	return &Controller{queue: *storage.New(size)}
 }
 
 func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
@@ -139,7 +138,7 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
-	state := FSM_DEVICE_HEADER
+	state := FsmDeviceHeader
 
 	wg.Add(1)
 	go func() {
@@ -147,16 +146,16 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 			text := scanner.Text()
 			text = strings.ReplaceAll(text, "  ", " ")
 			switch state {
-			case FSM_DEVICE_HEADER:
+			case FsmDeviceHeader:
 				if strings.Contains(text, "Filesystem") {
 					s = &Sensor{
 						Disks: make(MDisks, 0),
 					}
-					state = FSM_DEVICE_BODY
+					state = FsmDeviceBody
 				}
-			case FSM_DEVICE_BODY:
+			case FsmDeviceBody:
 				if text == "" {
-					state = FSM_DEVICE_HEADER
+					state = FsmDeviceHeader
 					c.queue.Push(s)
 					s = nil
 					continue
@@ -183,6 +182,6 @@ func (c *Controller) GetName() string {
 	return Name
 }
 
-func (c *Controller) SetMaxM(M int32) {
-	c.queue.SetSize(c.GetName(), M)
+func (c *Controller) SetMaxM(m int32) {
+	c.queue.SetSize(c.GetName(), m)
 }

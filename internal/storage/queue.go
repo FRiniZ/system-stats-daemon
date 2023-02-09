@@ -53,18 +53,13 @@ func (l *Queue) GetElementsAfter(t time.Time) <-chan interface{} {
 
 	go func() {
 		defer close(out)
-
-		//		t.Add(1 * time.Second)
-		//i		lastElm := l.list.Back().Value.(element)
-		//		if lastElm.timestamp.Unix() <= t.Unix() {
 		for e := l.list.Front(); e != nil; e = e.Next() {
 			elm := e.Value.(element)
-			if elm.timestamp.Before(t) {
+			if t.After(elm.timestamp) {
 				return
 			}
 			out <- elm.data
 		}
-		//		}
 	}()
 
 	return out

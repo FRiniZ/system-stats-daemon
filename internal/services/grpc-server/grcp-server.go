@@ -2,6 +2,7 @@ package grpcserver
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -16,7 +17,7 @@ import (
 	"google.golang.org/grpc/peer"
 )
 
-type grpcserver struct {
+type GRPCServer struct {
 	api.UnimplementedSSDServer
 	wg          *sync.WaitGroup
 	lock        *sync.Mutex
@@ -25,22 +26,22 @@ type grpcserver struct {
 	controllers map[string]common.Controller
 }
 
-func NewGRPCServer(wg *sync.WaitGroup) *grpcserver {
-	return &grpcserver{wg: wg, lock: &sync.Mutex{}, controllers: make(map[string]common.Controller)}
+func New(wg *sync.WaitGroup) *GRPCServer {
+	return &GRPCServer{wg: wg, lock: &sync.Mutex{}, controllers: make(map[string]common.Controller)}
 }
 
-func (s *grpcserver) Stop(ctx context.Context) error {
+func (s *GRPCServer) Stop(ctx context.Context) error {
 	s.stop()
 	return nil
 }
 
-func (s *grpcserver) Start(ctx context.Context, M int) error {
+func (s *GRPCServer) Start(ctx context.Context, m int) error {
 	s.ctx, s.stop = context.WithCancel(ctx)
-	s.controllers[common.LOADAVERAGE] = loadavg.New(M)
-	s.controllers[common.CPU] = iostatcpu.New(M)
-	s.controllers[common.LOADDISK] = iostatdisk.New(M)
-	s.controllers[common.SIZEDISK] = dfsize.New(M)
-	s.controllers[common.INODEDISK] = dfinode.New(M)
+	s.controllers[common.LOADAVERAGE] = loadavg.New(m)
+	s.controllers[common.CPU] = iostatcpu.New(m)
+	s.controllers[common.LOADDISK] = iostatdisk.New(m)
+	s.controllers[common.SIZEDISK] = dfsize.New(m)
+	s.controllers[common.INODEDISK] = dfinode.New(m)
 
 	for _, v := range s.controllers {
 		log.Printf("Starting[%s]....\n", v.GetName())
@@ -49,17 +50,17 @@ func (s *grpcserver) Start(ctx context.Context, M int) error {
 	return nil
 }
 
-func (s *grpcserver) GetController(name string, M int64) common.Controller {
+func (s *GRPCServer) GetController(name string, m int64) common.Controller {
 	if v, ok := s.controllers[name]; ok {
-		v.SetMaxM(int32(M))
+		v.SetMaxM(int32(m))
 		return v
 	}
 	return nil
 }
 
-func (s *grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) error {
+func (s *GRPCServer) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) error {
 	var once sync.Once
-	var IPaddr = "unknown"
+	var IPaddr string
 
 	s.wg.Add(1)
 	defer s.wg.Done()
@@ -76,6 +77,10 @@ func (s *grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) e
 	M := req.GetM()
 	sensors := req.GetBitmask()
 
+	if sensors == 0 {
+		return fmt.Errorf("request without sensors")
+	}
+
 	if sensors&api.STATS_ALL == api.STATS_ALL {
 		log.Printf("[%s]Request ALL stats\n", IPaddr)
 		controllers = append(controllers, s.GetController(common.LOADAVERAGE, M.GetSeconds()))
@@ -83,28 +88,29 @@ func (s *grpcserver) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) e
 		controllers = append(controllers, s.GetController(common.LOADDISK, M.GetSeconds()))
 		controllers = append(controllers, s.GetController(common.SIZEDISK, M.GetSeconds()))
 		controllers = append(controllers, s.GetController(common.INODEDISK, M.GetSeconds()))
-	} else {
-		if sensors&api.STATS_CPU == api.STATS_CPU {
-			log.Printf("[%s]Request CPU stats\n", IPaddr)
-			controllers = append(controllers, s.GetController(common.CPU, M.GetSeconds()))
-		}
+	}
 
-		if sensors&api.STATS_LOADAVERAGE == api.STATS_LOADAVERAGE {
-			log.Printf("[%s]Request LoadAverage stats\n", IPaddr)
-			controllers = append(controllers, s.GetController(common.LOADAVERAGE, M.GetSeconds()))
-		}
-		if sensors&api.STATS_LOADDISK == api.STATS_LOADDISK {
-			log.Printf("[%s]Request LoadDisk stats\n", IPaddr)
-			controllers = append(controllers, s.GetController(common.LOADDISK, M.GetSeconds()))
-		}
-		if sensors&api.STATS_SIZEDISK == api.STATS_SIZEDISK {
-			log.Printf("[%s]Request SizeDisk stats\n", IPaddr)
-			controllers = append(controllers, s.GetController(common.SIZEDISK, M.GetSeconds()))
-		}
-		if sensors&api.STATS_SIZEDISK == api.STATS_INODEDISK {
-			log.Printf("[%s]Request InodeDisk stats\n", IPaddr)
-			controllers = append(controllers, s.GetController(common.INODEDISK, M.GetSeconds()))
-		}
+	if sensors&api.STATS_CPU == api.STATS_CPU {
+		log.Printf("[%s]Request CPU stats\n", IPaddr)
+		controllers = append(controllers, s.GetController(common.CPU, M.GetSeconds()))
+	}
+
+	if sensors&api.STATS_LOADAVERAGE == api.STATS_LOADAVERAGE {
+		log.Printf("[%s]Request LoadAverage stats\n", IPaddr)
+		controllers = append(controllers, s.GetController(common.LOADAVERAGE, M.GetSeconds()))
+	}
+
+	if sensors&api.STATS_LOADDISK == api.STATS_LOADDISK {
+		log.Printf("[%s]Request LoadDisk stats\n", IPaddr)
+		controllers = append(controllers, s.GetController(common.LOADDISK, M.GetSeconds()))
+	}
+	if sensors&api.STATS_SIZEDISK == api.STATS_SIZEDISK {
+		log.Printf("[%s]Request SizeDisk stats\n", IPaddr)
+		controllers = append(controllers, s.GetController(common.SIZEDISK, M.GetSeconds()))
+	}
+	if sensors&api.STATS_SIZEDISK == api.STATS_INODEDISK {
+		log.Printf("[%s]Request InodeDisk stats\n", IPaddr)
+		controllers = append(controllers, s.GetController(common.INODEDISK, M.GetSeconds()))
 	}
 
 	sendRequst := func(in <-chan common.Sensor, wg *sync.WaitGroup) {

@@ -60,8 +60,8 @@ func (s *Sensor) MakeResponse() *api.Responce {
 }
 
 const (
-	FSM_CPU_HEADER = iota
-	FSM_CPU_BODY
+	FsmCPUHeader = iota
+	FsmCPUBody
 )
 
 type Controller struct {
@@ -69,8 +69,7 @@ type Controller struct {
 }
 
 func New(size int) *Controller {
-	return &Controller{
-		queue: *storage.New(size)}
+	return &Controller{queue: *storage.New(size)}
 }
 
 func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
@@ -110,7 +109,7 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
-	state := FSM_CPU_HEADER
+	state := FsmCPUHeader
 
 	wg.Add(1)
 	go func() {
@@ -118,15 +117,15 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 			text := scanner.Text()
 			text = strings.ReplaceAll(text, "  ", " ")
 			switch state {
-			case FSM_CPU_HEADER:
+			case FsmCPUHeader:
 				if strings.Contains(text, "avg-cpu:") {
 					s = &Sensor{}
-					state = FSM_CPU_BODY
+					state = FsmCPUBody
 				}
-			case FSM_CPU_BODY:
+			case FsmCPUBody:
 				text = strings.ReplaceAll(text, ",", ".")
 				fmt.Sscanf(text, "%f %f %f %f %f %f", &s.User, &s.Nice, &s.System, &s.IOWait, &s.Steal, &s.Idle)
-				state = FSM_CPU_HEADER
+				state = FsmCPUHeader
 				c.queue.Push(s)
 			}
 		}
@@ -144,6 +143,6 @@ func (c *Controller) GetName() string {
 	return Name
 }
 
-func (c *Controller) SetMaxM(M int32) {
-	c.queue.SetSize(c.GetName(), M)
+func (c *Controller) SetMaxM(m int32) {
+	c.queue.SetSize(c.GetName(), m)
 }
