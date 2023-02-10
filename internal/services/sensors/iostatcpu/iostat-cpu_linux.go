@@ -126,7 +126,7 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 				text = strings.ReplaceAll(text, ",", ".")
 				fmt.Sscanf(text, "%f %f %f %f %f %f", &s.User, &s.Nice, &s.System, &s.IOWait, &s.Steal, &s.Idle)
 				state = FsmCPUHeader
-				c.queue.Push(s)
+				c.queue.Push(s, time.Now())
 			}
 		}
 

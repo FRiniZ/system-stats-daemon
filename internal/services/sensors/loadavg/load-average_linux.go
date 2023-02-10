@@ -101,7 +101,7 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 		for scanner.Scan() {
 			text := scanner.Text()
 			fmt.Sscanf(text, "%f %f %f", &f1, &f2, &f3)
-			c.queue.Push(&Sensor{L1: f1, L2: f2, L3: f3})
+			c.queue.Push(&Sensor{L1: f1, L2: f2, L3: f3}, time.Now())
 		}
 
 		if err := cmd.Wait(); err != nil {

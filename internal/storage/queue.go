@@ -6,11 +6,13 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/common"
 )
 
 type element struct {
 	timestamp time.Time
-	data      interface{}
+	data      common.Sensor
 }
 
 type Queue struct {
@@ -32,7 +34,7 @@ func (l *Queue) SetSize(owner string, newsize int32) {
 	}
 }
 
-func (l *Queue) Push(s interface{}) {
+func (l *Queue) Push(s common.Sensor, t time.Time) {
 	defer l.rwm.Unlock()
 
 	l.rwm.Lock()
@@ -42,11 +44,11 @@ func (l *Queue) Push(s interface{}) {
 	if l.list.Len() == l.size {
 		l.list.Remove(l.list.Back())
 	}
-	l.list.PushFront(element{timestamp: time.Now(), data: s})
+	l.list.PushFront(element{timestamp: t, data: s})
 }
 
-func (l *Queue) GetElementsAfter(t time.Time) <-chan interface{} {
-	out := make(chan interface{})
+func (l *Queue) GetElementsAfter(t time.Time) <-chan common.Sensor {
+	out := make(chan common.Sensor)
 
 	defer l.rwm.RUnlock()
 	l.rwm.RLock()

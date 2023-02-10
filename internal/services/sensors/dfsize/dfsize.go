@@ -156,7 +156,7 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 			case FsmDeviceBody:
 				if text == "" {
 					state = FsmDeviceHeader
-					c.queue.Push(s)
+					c.queue.Push(s, time.Now())
 					s = nil
 					continue
 				}
