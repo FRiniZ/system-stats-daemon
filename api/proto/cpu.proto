@@ -4,7 +4,8 @@ option go_package ="./stub/;api";
 package api;
 
 message cpu {
-    float user = 1;
-    float system  = 2;
-    float idle = 3;
+    string  ErrorMsg    = 1;
+    float   user        = 2;
+    float   system      = 3;
+    float   idle        = 4;    
 }

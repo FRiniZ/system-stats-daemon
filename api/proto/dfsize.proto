@@ -4,7 +4,8 @@ option go_package ="./stub/;api";
 package api;
 
 message dfsize {
-    string  name = 1;
-    int32   Used = 2;
-    int32   Use  = 3;    
+    string  ErrorMsg    = 1;
+    string  Name        = 2;
+    int32   Used        = 3;
+    int32   Use         = 4;    
 }

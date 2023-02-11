@@ -35,35 +35,79 @@ type Config struct {
 
 type Application struct{}
 
-func (app *Application) Process(resp *api.Responce) {
-	if resp.GetCPU() != nil {
-		log.Printf("%-18s[User:%5.2f%% System:%5.2f%% Idle:%5.2f%%]", "CPU",
-			resp.GetCPU().User, resp.GetCPU().System, resp.GetCPU().Idle)
+func (app *Application) ProcessDummy(resp *api.Dummy) {
+	if resp.GetErrorMsg() == "" {
+		log.Printf("%-18s", common.DUMMY)
+	} else {
+		log.Printf("%-18s:%s", common.DUMMY, resp.GetErrorMsg())
 	}
+}
 
-	if resp.GetLoadAvg() != nil {
-		log.Printf("%-18s[1m:%5.2f 5m:%5.2f 15m:%5.2f]", "LoadAverage",
-			resp.GetLoadAvg().L1, resp.GetLoadAvg().L2, resp.GetLoadAvg().L3)
+func (app *Application) ProcessCPU(resp *api.Cpu) {
+	if resp.GetErrorMsg() == "" {
+		log.Printf("%-18s[User:%5.2f%% System:%5.2f%% Idle:%5.2f%%]", common.CPU,
+			resp.User, resp.System, resp.Idle)
+	} else {
+		log.Printf("%-18s:%s", common.CPU, resp.GetErrorMsg())
 	}
+}
 
-	if resp.GetDisks() != nil {
-		log.Printf("%-18s%8s%14s%14s\n", "Device", "tps", "Read KB/s", "Write KB/s")
-		for _, d := range resp.GetDisks() {
+func (app *Application) ProcessLoadAvg(resp *api.Loadaverage) {
+	if resp.GetErrorMsg() == "" {
+		log.Printf("%-18s[1m:%5.2f 5m:%5.2f 15m:%5.2f]", common.LOADAVERAGE,
+			resp.L1, resp.L2, resp.L3)
+	} else {
+		log.Printf("%-18s:%s", common.LOADAVERAGE, resp.GetErrorMsg())
+	}
+}
+
+func (app *Application) ProcessDisks(resp []*api.Loaddisk) {
+	log.Printf("%-18s%8s%14s%14s\n", common.LOADDISK, "tps", "Read KB/s", "Write KB/s")
+	for _, d := range resp {
+		if d.GetErrorMsg() == "" {
 			log.Printf("%-18s%8.2f%14.2f%14.2f\n", d.Name, d.TPS, d.ReadKBs, d.WriteKBs)
+		} else {
+			log.Printf("%-18s:%s", common.LOADDISK, d.GetErrorMsg())
 		}
 	}
+}
 
-	if resp.GetDfsize() != nil {
-		log.Printf("%-18s%15s%14s%%\n", "FileSystem", "Used", "Use")
-		for _, d := range resp.GetDfsize() {
+func (app *Application) ProcessDfsize(resp []*api.Dfsize) {
+	log.Printf("%-18s%15s%14s%%\n", common.SIZEDISK, "Used", "Use")
+	for _, d := range resp {
+		if d.GetErrorMsg() == "" {
 			log.Printf("%-18s%14dM%14d%%\n", d.Name, d.Used, d.Use)
+		} else {
+			log.Printf("%-18s:%s", common.SIZEDISK, d.GetErrorMsg())
 		}
 	}
-	if resp.GetDfinode() != nil {
-		log.Printf("%-18s%15s%14s%%\n", "FileSystem", "IUsed", "IUse")
-		for _, d := range resp.GetDfinode() {
+}
+
+func (app *Application) ProcessDfinode(resp []*api.Dfinode) {
+	log.Printf("%-18s%15s%14s%%\n", common.INODEDISK, "IUsed", "IUse")
+	for _, d := range resp {
+		if d.GetErrorMsg() == "" {
 			log.Printf("%-18s%14dM%14d%%\n", d.Name, d.IUsed, d.IUse)
+		} else {
+			log.Printf("%-18s:%s", common.INODEDISK, d.GetErrorMsg())
 		}
+	}
+}
+
+func (app *Application) Process(resp *api.Responce) {
+	switch {
+	case resp.GetDummy() != nil:
+		app.ProcessDummy(resp.GetDummy())
+	case resp.GetCPU() != nil:
+		app.ProcessCPU(resp.GetCPU())
+	case resp.GetLoadAvg() != nil:
+		app.ProcessLoadAvg(resp.GetLoadAvg())
+	case resp.GetDisks() != nil:
+		app.ProcessDisks(resp.GetDisks())
+	case resp.GetDfsize() != nil:
+		app.ProcessDfsize(resp.GetDfsize())
+	case resp.GetDfinode() != nil:
+		app.ProcessDfinode(resp.GetDfinode())
 	}
 }
 
@@ -88,6 +132,8 @@ stoploop:
 			stats |= api.STATS_SIZEDISK
 		case common.INODEDISK:
 			stats |= api.STATS_INODEDISK
+		case common.DUMMY:
+			stats |= api.STATS_DUMMY
 		}
 	}
 	return stats

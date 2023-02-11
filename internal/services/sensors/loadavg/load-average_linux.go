@@ -50,11 +50,11 @@ func (s *Sensor) MakeResponse() *api.Responce {
 }
 
 type Controller struct {
-	queue storage.Queue
+	queue *storage.Queue
 }
 
-func New(size int) *Controller {
-	return &Controller{queue: *storage.New(size)}
+func New() *Controller {
+	return &Controller{queue: storage.New(0)}
 }
 
 func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {

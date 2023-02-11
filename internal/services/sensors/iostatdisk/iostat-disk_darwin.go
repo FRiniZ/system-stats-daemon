@@ -1,4 +1,4 @@
-//go:build linux
+//go:build darwin
 
 package iostatdisk
 
@@ -77,14 +77,7 @@ func (s *Sensor) MakeResponse() *api.Responce {
 		Disks: make([]*api.Loaddisk, 0, len(s.Disks)),
 	}
 
-	for _, v := range s.Disks {
-		res.Disks = append(res.Disks, &api.Loaddisk{
-			Name:     v.Name,
-			TPS:      v.TPS,
-			WriteKBs: v.KBsWrite,
-			ReadKBs:  v.KBsRead,
-		})
-	}
+	res.Disks = append(res.Disks, &api.Loaddisk{ErrorMsg: "Not implemented"})
 
 	return res
 }
@@ -126,57 +119,21 @@ func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
 }
 
 func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
-	var s *Sensor
-	cmd := exec.CommandContext(ctx, "iostat", "-d", "-k", "1")
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-	cmdReader, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	scanner := bufio.NewScanner(cmdReader)
-
-	if err := cmd.Start(); err != nil {
-		log.Fatal(err)
-	}
-
-	state := FsmDeviceHeader
+	var f1, f2, f3 float32
 
 	wg.Add(1)
 	go func() {
-		for scanner.Scan() {
-			text := scanner.Text()
-			text = strings.ReplaceAll(text, "  ", " ")
-			switch state {
-			case FsmDeviceHeader:
-				if strings.Contains(text, "Device") {
-					s = &Sensor{
-						Disks: make(MDisks, 0),
-					}
-					state = FsmDeviceBody
-				}
-			case FsmDeviceBody:
-				if text == "" {
-					state = FsmDeviceHeader
-					c.queue.Push(s, time.Now())
-					s = nil
-					continue
-				}
-
-				text = strings.ReplaceAll(text, ",", ".")
-				disk := Disk{}
-				fmt.Sscanf(text, "%s %f %f %f", &disk.Name, &disk.TPS, &disk.KBsRead, &disk.KBsWrite)
-				s.Disks[disk.Name] = disk
+		tiker := time.NewTicker(1 * time.Second)
+		defer tiker.Stop()
+		defer wg.Done()
+		for {
+			select {
+			case <-tiker.C:
+				c.queue.Push(&Sensor{L1: f1, L2: f2, L3: f3}, time.Now())
+			case <-ctx.Done():
+				return
 			}
 		}
-
-		if err := cmd.Wait(); err != nil {
-			if err.Error() != "signal: killed" {
-				log.Println(err)
-			}
-		}
-		wg.Done()
 	}()
 }
 

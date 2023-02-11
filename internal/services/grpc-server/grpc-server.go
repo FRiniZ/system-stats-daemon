@@ -11,6 +11,7 @@ import (
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/common"
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/dfinode"
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/dfsize"
+	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/dummy"
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/iostatcpu"
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/iostatdisk"
 	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/loadavg"
@@ -35,13 +36,14 @@ func (s *GRPCServer) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (s *GRPCServer) Start(ctx context.Context, m int) error {
+func (s *GRPCServer) Start(ctx context.Context) error {
 	s.ctx, s.stop = context.WithCancel(ctx)
-	s.controllers[common.LOADAVERAGE] = loadavg.New(m)
-	s.controllers[common.CPU] = iostatcpu.New(m)
-	s.controllers[common.LOADDISK] = iostatdisk.New(m)
-	s.controllers[common.SIZEDISK] = dfsize.New(m)
-	s.controllers[common.INODEDISK] = dfinode.New(m)
+	s.controllers[common.LOADAVERAGE] = loadavg.New()
+	s.controllers[common.CPU] = iostatcpu.New()
+	s.controllers[common.LOADDISK] = iostatdisk.New()
+	s.controllers[common.SIZEDISK] = dfsize.New()
+	s.controllers[common.INODEDISK] = dfinode.New()
+	s.controllers[common.DUMMY] = dummy.New()
 
 	for _, v := range s.controllers {
 		log.Printf("Starting[%s]....\n", v.GetName())
@@ -111,6 +113,11 @@ func (s *GRPCServer) Subsribe(req *api.Request, stream api.SSD_SubsribeServer) e
 	if sensors&api.STATS_SIZEDISK == api.STATS_INODEDISK {
 		log.Printf("[%s]Request InodeDisk stats\n", IPaddr)
 		controllers = append(controllers, s.GetController(common.INODEDISK, M.GetSeconds()))
+	}
+
+	if sensors&api.STATS_DUMMY == api.STATS_DUMMY {
+		log.Printf("[%s]Request Dummy stats\n", IPaddr)
+		controllers = append(controllers, s.GetController(common.DUMMY, M.GetSeconds()))
 	}
 
 	sendRequst := func(in <-chan common.Sensor, wg *sync.WaitGroup) {

@@ -6,6 +6,7 @@ import "load-average.proto";
 import "load-disk.proto";
 import "dfsize.proto";
 import "dfinode.proto";
+import "dummy.proto";
 import "google/protobuf/duration.proto";
 
 package api;
@@ -18,14 +19,16 @@ enum STATS {
     LOADDISK        = 8;
     SIZEDISK        = 16;
     INODEDISK       = 32;
+    DUMMY           = 256;
 }
 
 message Responce {
-    cpu                    CPU     = 1;
-    loadaverage            LoadAvg = 2;    
-    repeated loaddisk      Disks   = 3;
-    repeated dfsize        Dfsize  = 4;
-    repeated dfinode       Dfinode = 5;
+    Dummy                  dummy   = 1; 
+    cpu                    CPU     = 2;
+    loadaverage            LoadAvg = 3;    
+    repeated loaddisk      Disks   = 4;
+    repeated dfsize        Dfsize  = 5;
+    repeated dfinode       Dfinode = 6;
 }
 
 

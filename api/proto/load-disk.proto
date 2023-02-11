@@ -4,8 +4,9 @@ option go_package ="./stub/;api";
 package api;
 
 message loaddisk {
-    string  name = 1;
-    float   TPS = 2;
-    float   writeKBs  = 3;
-    float   readKBs = 4;
+    string  ErrorMsg    = 1;
+    string  Name        = 2;
+    float   TPS         = 3;
+    float   WriteKBs    = 4;
+    float   ReadKBs     = 5;
 }

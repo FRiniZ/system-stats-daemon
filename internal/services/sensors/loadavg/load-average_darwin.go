@@ -2,19 +2,23 @@
 
 package loadavg
 
-/*
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os/exec"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors"
+	api "github.com/FRiniZ/system-stats-daemon/api/stub"
+	"github.com/FRiniZ/system-stats-daemon/internal/services/sensors/common"
+	"github.com/FRiniZ/system-stats-daemon/internal/storage"
+)
+
+const (
+	Name string = "Load average"
 )
 
 type Sensor struct {
@@ -23,62 +27,78 @@ type Sensor struct {
 	L3 float32
 }
 
-func (s *Sensor) Run(ctx context.Context, out chan<- sensors.Interface, wg *sync.WaitGroup) {
-	ticker := time.NewTicker(1 * time.Second)
+func (s *Sensor) Add(a *Sensor) {
+	s.L1 += a.L1
+	s.L2 += a.L2
+	s.L3 += a.L3
+}
+
+func (s *Sensor) Div(d int32) {
+	s.L1 /= float32(d)
+	s.L2 /= float32(d)
+	s.L3 /= float32(d)
+}
+
+func (s *Sensor) MakeResponse() *api.Responce {
+	return &api.Responce{
+		LoadAvg: &api.Loadaverage{
+			ErrorMsg : "Not implemented"
+		},
+	}
+}
+
+type Controller struct {
+	queue storage.Queue
+}
+
+func New(size int) *Controller {
+	return &Controller{queue: *storage.New(size)}
+}
+
+func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
+	out := make(chan common.Sensor)
+	avg := Sensor{}
 
 	go func() {
-		defer wg.Done()
-		defer fmt.Println("Stop load-average.sensor")
-		defer ticker.Stop()
+		in := c.queue.GetElementsAfter(t)
+		count := int32(0)
+		for s := range in {
+			count++
+			avg.Add(s.(*Sensor))
+		}
+		if count > 0 {
+			avg.Div(count)
+			out <- &avg
+		}
+		close(out)
+	}()
 
+	return out
+}
+
+func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
+	var f1, f2, f3 float32
+
+	wg.Add(1)
+	go func() {
+		tiker := time.NewTicker(1 * time.Second)
+		defer tiker.Stop()
+		defer wg.Done()
 		for {
 			select {
+			case <-tiker.C:
+				c.queue.Push(&Sensor{L1: f1, L2: f2, L3: f3}, time.Now())
 			case <-ctx.Done():
 				return
-			case <-ticker.C:
-				out <- s.Read()
-			}
-		}
+			}			
+		}					
 	}()
 }
 
-// sysctl -n vm.loadavg
-func (s *Sensor) Read() sensors.Interface {
-	var err error
-	var f1, f2, f3 float32
-
-	c1 := exec.Command("top", "-F", "-l", "1")
-	c2 := exec.Command("grep", "-E", "^Load")
-
-	c1.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	c2.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-	var outb, errb bytes.Buffer
-	r, w := io.Pipe()
-
-	c1.Stdout = w
-	c1.Stderr = &errb
-
-	c2.Stdin = r
-	c2.Stdout = &outb
-	c2.Stderr = &errb
-
-	err = c1.Start()
-	if err != nil {
-		log.Printf("Stderr:%v", errb.String())
-		log.Fatal(err)
-	}
-	err = c2.Start()
-	if err != nil {
-		log.Printf("Stderr:%v", errb.String())
-		log.Fatal(err)
-	}
-	c1.Wait()
-	w.Close()
-	c2.Wait()
-
-	fmt.Sscanf(outb.String(), "Load Avg: %f, %f, %f", &f1, &f2, &f3)
-
-	return &Sensor{L1: f1, L2: f2, L3: f3}
+func (c *Controller) GetName() string {
+	return Name
 }
-*/
+
+func (c *Controller) SetMaxM(m int32) {
+	c.queue.SetSize(c.GetName(), m)
+}

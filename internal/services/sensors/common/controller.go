@@ -15,6 +15,7 @@ const (
 	LOADDISK    string = "LOADDISK"
 	SIZEDISK    string = "SIZEDISK"
 	INODEDISK   string = "INODEDISK"
+	DUMMY       string = "DUMMY"
 )
 
 type Sensor interface {

@@ -4,7 +4,8 @@ option go_package ="./stub/;api";
 package api;
 
 message loadaverage {
-    float L1 = 1;
-    float L2 = 2;
-    float L3 = 3;
+    string  ErrorMsg    = 1;
+    float   L1          = 2;
+    float   L2          = 3;
+    float   L3          = 4;
 }

@@ -26,7 +26,7 @@ func (d *DummySensor) MakeResponse() *api.Responce {
 }
 
 func TestQueue(t *testing.T) {
-
+	t.Parallel()
 	for i := 0; i < 10; i++ {
 		queue := New(15)
 		t.Run(fmt.Sprintf("loadtesting_N%d", i), func(t *testing.T) {
@@ -49,6 +49,7 @@ func TestQueue(t *testing.T) {
 	}
 
 	t.Run("checking_limits_by_size", func(t *testing.T) {
+		t.Parallel()
 		queue := New(2)
 		sensor1 := DummySensor{
 			AvgValue: 1,
@@ -88,6 +89,7 @@ func TestQueue(t *testing.T) {
 	})
 
 	t.Run("checking_GetElementsAfter", func(t *testing.T) {
+		t.Parallel()
 		queue := New(3)
 		sensor1 := DummySensor{
 			AvgValue: 1,

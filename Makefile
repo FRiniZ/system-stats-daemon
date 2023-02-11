@@ -20,7 +20,7 @@ lint: install-lint-deps
 .PHONY: test
 test:
 	@echo "Running tests..."
-	@go test ./...
+	@go test -race -count 100 ./...
 
 .PHONY: pre-build
 pre-build:

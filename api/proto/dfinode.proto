@@ -4,7 +4,8 @@ option go_package ="./stub/;api";
 package api;
 
 message dfinode {
-    string  Name = 1;
-    int32   IUsed = 2;
-    int32   IUse  = 3;    
+    string  ErrorMsg    = 1;
+    string  Name        = 2;
+    int32   IUsed       = 3;
+    int32   IUse        = 4;    
 }
