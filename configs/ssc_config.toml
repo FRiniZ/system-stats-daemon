@@ -1,0 +1,11 @@
+ClientID = "Rini1"
+
+[GRPC]
+host = "localhost"
+port = "10000"
+
+[core]
+N = "5s"
+M = "15s"
+# ALL, CPU, LOADAVERAGE, LOADDISK, SIZEDISK, INODEDISK
+Sensors = ["LOADAVERAGE"]

@@ -1,0 +1,11 @@
+syntax = "proto3";
+option go_package ="./stub/;api";
+
+package api;
+
+message cpu {
+    string  ErrorMsg    = 1;
+    float   user        = 2;
+    float   system      = 3;
+    float   idle        = 4;    
+}

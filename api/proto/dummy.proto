@@ -1,0 +1,8 @@
+syntax = "proto3";
+option go_package ="./stub/;api";
+
+package api;
+
+message Dummy {
+    string  ErrorMsg    = 1;
+}

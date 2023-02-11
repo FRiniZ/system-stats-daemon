@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine
+FROM golang:1.19-alpine
 
 RUN apk --no-cache add alpine-sdk
 WORKDIR /src
