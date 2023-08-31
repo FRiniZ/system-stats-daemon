@@ -1,7 +1,6 @@
-//go:build linux
-// +build linux
+//go:build darwin
 
-package iostatdisk
+package dfsize
 
 import (
 	"bufio"
@@ -20,26 +19,23 @@ import (
 )
 
 const (
-	Name string = "Disk load"
+	Name string = "Disk usage"
 )
 
 type Disk struct {
-	Name     string
-	TPS      float32
-	KBsRead  float32
-	KBsWrite float32
+	Name string
+	Used int32
+	Use  int32
 }
 
 func (d *Disk) Add(a Disk) {
-	d.KBsRead += a.KBsRead
-	d.KBsWrite += a.KBsWrite
-	d.TPS += a.TPS
+	d.Used += a.Used
+	d.Use += a.Use
 }
 
 func (d *Disk) Div(n int32) {
-	d.KBsRead /= float32(n)
-	d.KBsWrite /= float32(n)
-	d.TPS /= float32(n)
+	d.Used /= n
+	d.Use /= n
 }
 
 type MDisks map[string]Disk
@@ -75,18 +71,15 @@ func (s *Sensor) Div(n int32) {
 
 func (s *Sensor) MakeResponse() *api.Responce {
 	res := &api.Responce{
-		Disks: make([]*api.Loaddisk, 0, len(s.Disks)),
+		Dfsize: make([]*api.Dfsize, 0, len(s.Disks)),
 	}
-
 	for _, v := range s.Disks {
-		res.Disks = append(res.Disks, &api.Loaddisk{
-			Name:     v.Name,
-			TPS:      v.TPS,
-			WriteKBs: v.KBsWrite,
-			ReadKBs:  v.KBsRead,
+		res.Dfsize = append(res.Dfsize, &api.Dfsize{
+			Name: v.Name,
+			Used: v.Used,
+			Use:  v.Use,
 		})
 	}
-
 	return res
 }
 
@@ -128,7 +121,10 @@ func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
 
 func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 	var s *Sensor
-	cmd := exec.CommandContext(ctx, "iostat", "-d", "-k", "1")
+	var blocks int32
+	var available int32
+
+	cmd := exec.CommandContext(ctx, "/bin/bash", "-c", "while true; do df -BM; echo; echo; sleep 1; done")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	cmdReader, err := cmd.StdoutPipe()
@@ -151,7 +147,7 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 			text = strings.ReplaceAll(text, "  ", " ")
 			switch state {
 			case FsmDeviceHeader:
-				if strings.Contains(text, "Device") {
+				if strings.Contains(text, "Filesystem") {
 					s = &Sensor{
 						Disks: make(MDisks, 0),
 					}
@@ -164,11 +160,12 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 					s = nil
 					continue
 				}
-
-				text = strings.ReplaceAll(text, ",", ".")
 				disk := Disk{}
-				fmt.Sscanf(text, "%s %f %f %f", &disk.Name, &disk.TPS, &disk.KBsRead, &disk.KBsWrite)
-				s.Disks[disk.Name] = disk
+				fmt.Sscanf(text, "%s %dM %dM %dM %d%%", &disk.Name, &blocks, &disk.Used, &available, &disk.Use)
+				// Skip not phisical disk
+				if disk.Name[0] == '/' {
+					s.Disks[disk.Name] = disk
+				}
 			}
 		}
 

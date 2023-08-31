@@ -3,14 +3,8 @@
 package iostatdisk
 
 import (
-	"bufio"
 	"context"
-	"fmt"
-	"log"
-	"os/exec"
-	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	api "github.com/FRiniZ/system-stats-daemon/api/stub"
@@ -119,8 +113,6 @@ func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
 }
 
 func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
-	var f1, f2, f3 float32
-
 	wg.Add(1)
 	go func() {
 		tiker := time.NewTicker(1 * time.Second)
@@ -129,7 +121,7 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 		for {
 			select {
 			case <-tiker.C:
-				c.queue.Push(&Sensor{L1: f1, L2: f2, L3: f3}, time.Now())
+				c.queue.Push(&Sensor{}, time.Now())
 			case <-ctx.Done():
 				return
 			}
