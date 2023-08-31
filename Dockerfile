@@ -1,6 +1,8 @@
 FROM golang:1.19-alpine
 
 RUN apk --no-cache add alpine-sdk
+RUN apk --no-cache add bash
+RUN apk --no-cache add sysstat
 WORKDIR /src
 
 # Copy over dependency file and download it if files changed

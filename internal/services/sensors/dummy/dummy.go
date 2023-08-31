@@ -16,9 +16,9 @@ const (
 
 type Sensor struct{}
 
-func (s *Sensor) Add(a *Sensor) {}
+func (s *Sensor) Add(_ *Sensor) {}
 
-func (s *Sensor) Div(n int32) {}
+func (s *Sensor) Div(_ int32) {}
 
 func (s *Sensor) MakeResponse() *api.Responce {
 	res := &api.Responce{
@@ -36,7 +36,7 @@ func New() *Controller {
 }
 
 // Dummy alwayes return only one record.
-func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
+func (c *Controller) GetAverageAfter(_ time.Time) <-chan common.Sensor {
 	out := make(chan common.Sensor)
 	avg := Sensor{}
 

@@ -31,7 +31,7 @@ func New(wg *sync.WaitGroup) *GRPCServer {
 	return &GRPCServer{wg: wg, lock: &sync.Mutex{}, controllers: make(map[string]common.Controller)}
 }
 
-func (s *GRPCServer) Stop(ctx context.Context) error {
+func (s *GRPCServer) Stop(_ context.Context) error {
 	s.stop()
 	return nil
 }

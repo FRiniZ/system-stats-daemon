@@ -3,13 +3,8 @@
 package loadavg
 
 import (
-	"bufio"
 	"context"
-	"fmt"
-	"log"
-	"os/exec"
 	"sync"
-	"syscall"
 	"time"
 
 	api "github.com/FRiniZ/system-stats-daemon/api/stub"
@@ -42,7 +37,7 @@ func (s *Sensor) Div(d int32) {
 func (s *Sensor) MakeResponse() *api.Responce {
 	return &api.Responce{
 		LoadAvg: &api.Loadaverage{
-			ErrorMsg : "Not implemented"
+			ErrorMsg: "Not implemented",
 		},
 	}
 }
@@ -51,8 +46,8 @@ type Controller struct {
 	queue storage.Queue
 }
 
-func New(size int) *Controller {
-	return &Controller{queue: *storage.New(size)}
+func New() *Controller {
+	return &Controller{queue: *storage.New(1)}
 }
 
 func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
@@ -90,8 +85,8 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 				c.queue.Push(&Sensor{L1: f1, L2: f2, L3: f3}, time.Now())
 			case <-ctx.Done():
 				return
-			}			
-		}					
+			}
+		}
 	}()
 }
 

@@ -5,6 +5,7 @@ BUILD_DIR=build
 APP_VERSION=$(shell scripts/version.sh)
 LDFLAGS=-X main.release=$(APP_VERSION) -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
 
+GO_CMD= go
 GO_BUILD_CMD= CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)"
 
 .PHONY: all
@@ -12,7 +13,7 @@ all: clean lint test build-all package-all
 
 .PHONY: lint
 install-lint-deps:
-	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.50.1
+	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
 
 lint: install-lint-deps
 	golangci-lint run ./...
@@ -58,7 +59,7 @@ package-all: package-linux package-osx
 
 .PHONY: docker
 docker:
-	docker build --force-rm -t $(BINARY_SSD) .
+	sudo docker build --force-rm -t $(BINARY_SSD) .
 
 .PHONY: build-in-docker
 build-in-docker: docker

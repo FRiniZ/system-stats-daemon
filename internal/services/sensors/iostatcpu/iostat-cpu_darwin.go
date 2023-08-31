@@ -1,7 +1,6 @@
-//go:build linux
-// +build linux
+//go:build darwin
 
-package iostatdisk
+package iostatcpu
 
 import (
 	"bufio"
@@ -20,79 +19,49 @@ import (
 )
 
 const (
-	Name string = "Disk load"
+	Name string = "CPU"
 )
 
-type Disk struct {
-	Name     string
-	TPS      float32
-	KBsRead  float32
-	KBsWrite float32
-}
-
-func (d *Disk) Add(a Disk) {
-	d.KBsRead += a.KBsRead
-	d.KBsWrite += a.KBsWrite
-	d.TPS += a.TPS
-}
-
-func (d *Disk) Div(n int32) {
-	d.KBsRead /= float32(n)
-	d.KBsWrite /= float32(n)
-	d.TPS /= float32(n)
-}
-
-type MDisks map[string]Disk
-
-func (d *MDisks) Add(a *MDisks) {
-	for k, v := range *a {
-		v2, ok := (*d)[k]
-		if ok {
-			v2.Add(v)
-		} else {
-			(*d)[k] = v
-		}
-	}
-}
-
-func (d *MDisks) Div(n int32) {
-	for _, v := range *d {
-		v.Div(n)
-	}
-}
-
 type Sensor struct {
-	Disks MDisks
+	User   float32
+	Nice   float32
+	System float32
+	IOWait float32
+	Steal  float32
+	Idle   float32
 }
 
 func (s *Sensor) Add(a *Sensor) {
-	s.Disks.Add(&a.Disks)
+	s.User += a.User
+	s.Nice += a.Nice
+	s.System += a.System
+	s.IOWait += a.IOWait
+	s.Steal += a.Steal
+	s.Idle += a.Idle
 }
 
 func (s *Sensor) Div(n int32) {
-	s.Disks.Div(n)
+	s.User /= float32(n)
+	s.Nice /= float32(n)
+	s.System /= float32(n)
+	s.IOWait /= float32(n)
+	s.Steal /= float32(n)
+	s.Idle /= float32(n)
 }
 
 func (s *Sensor) MakeResponse() *api.Responce {
-	res := &api.Responce{
-		Disks: make([]*api.Loaddisk, 0, len(s.Disks)),
+	return &api.Responce{
+		CPU: &api.Cpu{
+			User:   s.User,
+			System: s.System,
+			Idle:   s.Idle,
+		},
 	}
-
-	for _, v := range s.Disks {
-		res.Disks = append(res.Disks, &api.Loaddisk{
-			Name:     v.Name,
-			TPS:      v.TPS,
-			WriteKBs: v.KBsWrite,
-			ReadKBs:  v.KBsRead,
-		})
-	}
-
-	return res
 }
 
 const (
-	FsmDeviceHeader = iota
-	FsmDeviceBody
+	FsmCPUHeader = iota
+	FsmCPUBody
 )
 
 type Controller struct {
@@ -105,9 +74,7 @@ func New() *Controller {
 
 func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
 	out := make(chan common.Sensor)
-	avg := Sensor{
-		Disks: map[string]Disk{},
-	}
+	avg := Sensor{}
 
 	go func() {
 		in := c.queue.GetElementsAfter(t)
@@ -128,7 +95,7 @@ func (c *Controller) GetAverageAfter(t time.Time) <-chan common.Sensor {
 
 func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 	var s *Sensor
-	cmd := exec.CommandContext(ctx, "iostat", "-d", "-k", "1")
+	cmd := exec.CommandContext(ctx, "iostat", "-c", "1")
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	cmdReader, err := cmd.StdoutPipe()
@@ -142,7 +109,7 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
-	state := FsmDeviceHeader
+	state := FsmCPUHeader
 
 	wg.Add(1)
 	go func() {
@@ -150,25 +117,16 @@ func (c *Controller) Run(ctx context.Context, wg *sync.WaitGroup) {
 			text := scanner.Text()
 			text = strings.ReplaceAll(text, "  ", " ")
 			switch state {
-			case FsmDeviceHeader:
-				if strings.Contains(text, "Device") {
-					s = &Sensor{
-						Disks: make(MDisks, 0),
-					}
-					state = FsmDeviceBody
+			case FsmCPUHeader:
+				if strings.Contains(text, "avg-cpu:") {
+					s = &Sensor{}
+					state = FsmCPUBody
 				}
-			case FsmDeviceBody:
-				if text == "" {
-					state = FsmDeviceHeader
-					c.queue.Push(s, time.Now())
-					s = nil
-					continue
-				}
-
+			case FsmCPUBody:
 				text = strings.ReplaceAll(text, ",", ".")
-				disk := Disk{}
-				fmt.Sscanf(text, "%s %f %f %f", &disk.Name, &disk.TPS, &disk.KBsRead, &disk.KBsWrite)
-				s.Disks[disk.Name] = disk
+				fmt.Sscanf(text, "%f %f %f %f %f %f", &s.User, &s.Nice, &s.System, &s.IOWait, &s.Steal, &s.Idle)
+				state = FsmCPUHeader
+				c.queue.Push(s, time.Now())
 			}
 		}
 
