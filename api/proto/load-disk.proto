@@ -1,0 +1,12 @@
+syntax = "proto3";
+option go_package ="./stub/;api";
+
+package api;
+
+message loaddisk {
+    string  ErrorMsg    = 1;
+    string  Name        = 2;
+    float   TPS         = 3;
+    float   WriteKBs    = 4;
+    float   ReadKBs     = 5;
+}

@@ -1,0 +1,8 @@
+[logger]
+level = "INFO"
+
+[GRPC]
+host = "localhost"
+port = "10000"
+
+

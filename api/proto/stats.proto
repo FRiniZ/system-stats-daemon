@@ -1,0 +1,44 @@
+syntax = "proto3";
+option go_package ="./stub/;api";
+
+import "cpu.proto";
+import "load-average.proto";
+import "load-disk.proto";
+import "dfsize.proto";
+import "dfinode.proto";
+import "dummy.proto";
+import "google/protobuf/duration.proto";
+
+package api;
+
+enum STATS {
+    NOTHING         = 0;
+    ALL             = 1;
+    CPU             = 2;
+    LOADAVERAGE     = 4;
+    LOADDISK        = 8;
+    SIZEDISK        = 16;
+    INODEDISK       = 32;
+    DUMMY           = 256;
+}
+
+message Responce {
+    Dummy                  dummy   = 1; 
+    cpu                    CPU     = 2;
+    loadaverage            LoadAvg = 3;    
+    repeated loaddisk      Disks   = 4;
+    repeated dfsize        Dfsize  = 5;
+    repeated dfinode       Dfinode = 6;
+}
+
+
+message Request {
+    google.protobuf.Duration    N        = 1;
+    google.protobuf.Duration    M        = 2;
+    STATS                       bitmask  = 3;
+}
+
+service SSD {
+    rpc Subsribe (Request) returns  (stream Responce) {}    
+}
+

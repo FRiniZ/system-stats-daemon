@@ -1,0 +1,11 @@
+syntax = "proto3";
+option go_package ="./stub/;api";
+
+package api;
+
+message loadaverage {
+    string  ErrorMsg    = 1;
+    float   L1          = 2;
+    float   L2          = 3;
+    float   L3          = 4;
+}
